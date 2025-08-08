@@ -140,6 +140,14 @@ function openModal(plant: Tile, index: number) {
   (document.getElementById("my_modal_2") as HTMLDialogElement).showModal();
 }
 
+async function updateUI() {
+  const req = await fetch("/api/state");
+  if (req.ok) {
+    const body = await req.json()
+    state.value = body.game.state as MultiplayerGameState;
+  }
+}
+
 async function placePestTile(x: number, y: number) {
   if (!selectedTile.value) return;
   if (!state.value) return;
@@ -150,7 +158,7 @@ async function placePestTile(x: number, y: number) {
     });
     if (res) {
       console.log("Tile placed successfully");
-      state.value = res.game.state as MultiplayerGameState;
+      updateUI();
     } else {
       console.error("Failed to place tile:", res);
     }
@@ -160,15 +168,15 @@ async function placePestTile(x: number, y: number) {
 async function growTile(x: number, y: number) {
   if (!selectedTile.value) return;
   if (!state.value) return;
-  const res = await sendCommand("growPlant", { playerId, x, y }).catch((err) => {
+  const cmdResult = await sendCommand("growPlant", { playerId, x, y }).catch((err) => {
     console.error("Error sending command:", err);
   });
 
-  if (res) {
+  if (cmdResult) {
     console.log("Tile placed successfully");
-    state.value = res.game.state as MultiplayerGameState;
+    updateUI();
   } else {
-    console.error("Failed to grow tile:", res);
+    console.error("Failed to grow tile:", cmdResult);
   }
 }
 
@@ -178,39 +186,39 @@ async function placeTile(x: number, y: number) {
 
   if (turnState.value === 'PLACE') {
     const tileIndex = state.value.draftZone.indexOf(selectedTile.value)
-    const res = await sendCommand("placePlantTile", { playerId, tileIndex, x, y }).catch((err) => {
+    const cmdResult = await sendCommand("placePlantTile", { playerId, tileIndex, x, y }).catch((err) => {
       console.error("Error sending command:", err);
     });
-    if (res) {
+    if (cmdResult) {
       console.log("Tile placed successfully");
-      state.value = res.game.state as MultiplayerGameState;
+      updateUI()
     } else {
-      console.error("Failed to place tile:", res);
+      console.error("Failed to place tile:", cmdResult);
     }
   }
   else if (turnState.value === 'PEST') {
-    const res = await sendCommand("placePestTile", { playerId, x, y, tile: { type: 'pest' } }).catch((err) => {
+    const cmdResult = await sendCommand("placePestTile", { playerId, x, y, tile: { type: 'pest' } }).catch((err) => {
       console.error("Error sending command:", err);
     });
-    if (res) {
+    if (cmdResult) {
       console.log("Tile placed successfully");
-      state.value = res.game.state as MultiplayerGameState;
+      updateUI()
     } else {
-      console.error("Failed to place tile:", res);
+      console.error("Failed to place tile:", cmdResult);
     }
   }
 }
 
 async function endturn() {
-  const res = await sendCommand("nextTurn", { playerId }).catch((err) => {
+  const cmdResult = await sendCommand("nextTurn", { playerId }).catch((err) => {
     console.error("Error sending command:", err);
   });
 
-  if (res) {
+  if (cmdResult) {
     console.log("Tile placed successfully");
-    state.value = res.game.state as MultiplayerGameState;
+    updateUI()
   } else {
-    console.error("Failed to end turn:", res);
+    console.error("Failed to end turn:", cmdResult);
   }
 }
 
