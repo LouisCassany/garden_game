@@ -78,7 +78,7 @@
         <button>close</button>
       </form>
     </dialog>
-    <button class="btn btn-warning" @click="resetGame()">Reset game</button>
+    <button class="btn btn-warning mt-16" @click="resetGame()">Reset game</button>
   </div>
 </template>
 
