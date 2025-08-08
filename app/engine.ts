@@ -1,5 +1,5 @@
 type Resource = 'water' | 'light' | 'compost';
-type PlantName = 'Lavender' | 'Sunflower' | 'Mushroom' | 'Tree' | 'Daisy' | 'Compost' | 'Pond' | 'Cactus' | 'Bamboo' | 'Vine' | 'Fern' | 'lemonTree';
+type PlantName = 'Lavender' | 'Sunflower' | 'Mushroom' | 'Tree' | 'Daisy' | 'Compost' | 'Pond' | 'Cactus' | 'Bamboo' | 'Vine' | 'Fern' | 'LemonTree';
 export type TurnState = 'PLACE' | 'GROW' | 'PEST' | 'END' | 'DONE';
 type Result<T> = { success: T, reason?: string };
 
@@ -266,16 +266,16 @@ const plantLibrary: PlantData[] = [
                 t?.type === 'plant' && t.plant.name === 'Tree'
             );
             if (treeNeighbors) {
-                playerState.resources.light += 1;
+                playerState.resources.light += 2;
             }
         },
         placeEffect: () => { },
         description: 'Ferns grow in tree shade. ',
-        effect: "+1 light resource when next to a Tree",
+        effect: "+2 light resource when next to a Tree",
         isPlant: true,
     },
     {
-        name: 'lemonTree',
+        name: 'LemonTree',
         growthCost: { water: 1, light: 1, compost: 1 },
         basePoints: 5,
         growEffect: () => { },
