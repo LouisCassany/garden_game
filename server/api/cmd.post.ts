@@ -1,0 +1,16 @@
+import { type Command } from '../../shared/engine'
+import { game } from '../game'
+
+
+export default defineEventHandler(async (event) => {
+    const command = await readBody(event) as Command
+    if (typeof (game as any)[command.type] !== "function") {
+        return createError({ statusCode: 400, message: "Invalid command: " + command.type })
+    }
+    try {
+        const result = (game as any)[command.type](...command.args);
+        return { result, game };
+    } catch (err: any) {
+        return createError({ statusCode: 400, message: err.message })
+    }
+})
