@@ -37,7 +37,7 @@
 </template>
 
 <script lang="ts" setup>
-import { type Tile, type PlantTile } from '../../../engine.ts'
+import { type Tile, type PlantTile } from "../engine";
 
 defineProps<{
     tile: Tile

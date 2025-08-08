@@ -84,7 +84,7 @@
 
 <script lang="ts" setup>
 import { ref, computed } from "vue";
-import { type MultiplayerGameState, type Tile, type Grid, sendCommand, type PlantTile, type PlayerId } from "../shared/engine";
+import { type MultiplayerGameState, type Tile, type Grid, sendCommand, type PlantTile, type PlayerId } from "./engine";
 
 // const socket = new WebSocket('ws://localhost:3000/websocket');
 const state = ref<MultiplayerGameState | null>(null);

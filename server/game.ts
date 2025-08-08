@@ -1,4 +1,4 @@
-import MultiplayerGardenGame from "~~/shared/engine";
+import MultiplayerGardenGame from "../app/engine";
 
 const GAME_SETTINGS = {
     GRID_SIZE: 5,

@@ -1,4 +1,4 @@
-import { type Command } from '../../shared/engine'
+import { type Command } from "../../app/engine";
 import { game } from '../game'
 
 
