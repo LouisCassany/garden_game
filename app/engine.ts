@@ -1,5 +1,5 @@
 type Resource = 'water' | 'light' | 'compost';
-type PlantName = 'Lavender' | 'Sunflower' | 'Mushroom' | 'Tree' | 'Daisy' | 'Compost' | 'Pond' | 'Cactus' | 'Bamboo' | 'Vine' | 'Fern';
+type PlantName = 'Lavender' | 'Sunflower' | 'Mushroom' | 'Tree' | 'Daisy' | 'Compost' | 'Pond' | 'Cactus' | 'Bamboo' | 'Vine' | 'Fern' | 'lemonTree';
 export type TurnState = 'PLACE' | 'GROW' | 'PEST' | 'END' | 'DONE';
 type Result<T> = { success: T, reason?: string };
 
@@ -7,7 +7,7 @@ export type PlayerId = string;
 
 export interface PlayerState {
     id: PlayerId;
-    garden: Grid;
+    garden: Garden;
     score: number;
     resources: Record<Resource, number>;
     infestation: number;
@@ -48,7 +48,7 @@ interface PestTile {
 
 export type Tile = PlantTile | PestTile;
 
-export type Grid = (Tile | null)[][]; // 5x5 grid
+export type Garden = (Tile | null)[][]; // 5x5 grid
 
 type Settings = {
     GRID_SIZE: number;
@@ -193,7 +193,7 @@ const plantLibrary: PlantData[] = [
             playerState.resources.compost += 1;
         },
         description: 'Compost is a nutritious resource that can be used to grow plants.',
-        effect: '+1 compost resource',
+        effect: '+2 compost resource on PLACEMENT',
         isPlant: false,
     },
     {
@@ -205,7 +205,7 @@ const plantLibrary: PlantData[] = [
             playerState.resources.water += 2;
         },
         description: 'Ponds are a source of water.',
-        effect: '+2 water resources',
+        effect: '+2 water resource on PLACEMENT',
         isPlant: false,
     },
     {
@@ -274,6 +274,19 @@ const plantLibrary: PlantData[] = [
         effect: "+1 light resource when next to a Tree",
         isPlant: true,
     },
+    {
+        name: 'lemonTree',
+        growthCost: { water: 1, light: 1, compost: 1 },
+        basePoints: 5,
+        growEffect: () => { },
+        placeEffect: (playerState) => {
+            playerState.pestToPlace++;
+        },
+        description: 'Lemon trees are beautiful but attract pests.',
+        effect: "+1 pest on PLACEMENT",
+        isPlant: true,
+    }
+
 ];
 
 export default class MultiplayerGardenGame {
@@ -484,7 +497,7 @@ export default class MultiplayerGardenGame {
         }
     }
 
-    private getNeighbors(garden: Grid, x: number, y: number): (Tile | null)[] {
+    private getNeighbors(garden: Garden, x: number, y: number): (Tile | null)[] {
         const dirs = [[0, -1], [0, 1], [-1, 0], [1, 0]];
         //@ts-ignore
         return dirs.map(([dx, dy]) => this.inBounds(x + dx, y + dy) ? garden[y + dy][x + dx] : null);

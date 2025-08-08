@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Garden Boardgame Rules</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            line-height: 1.6;
+            margin: 20px;
+        }
+        h1, h2, h3 {
+            color: #333;
+        }
+        .section {
+            margin-bottom: 20px;
+        }
+        .plant-list {
+            list-style: none;
+            padding: 0;
+        }
+        .plant-list li {
+            margin-bottom: 10px;
+            border-left: 3px solid #4CAF50;
+            padding-left: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Garden Boardgame Rules</h1>
+
+    <div class="section">
+        <h2>Game Objective</h2>
+        <p>The goal of the game is to have the highest score. Players earn points by placing and growing plants in their personal 5x5 garden.</p>
+    </div>
+
+    <div class="section">
+        <h2>Game Setup</h2>
+        <ul>
+            <li>Each player has their own 5x5 garden grid.</li>
+            <li>Each player starts with 1 of each resource: 💧 Water, ☀️ Light, and 🌾 Compost.</li>
+            <li>A central "draft zone" contains plant tiles available to all players.</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>Turn Structure</h2>
+        <p>A player's turn has four phases:</p>
+        <ol>
+            <li><strong>PLACE:</strong> You must place one plant tile from the draft zone into an empty square in your garden.</li>
+            <li><strong>GROW:</strong> (Optional) You may use your resources to "grow" one plant already in your garden. You can also skip this phase.</li>
+            <li><strong>PEST:</strong> If you have any pests to place, you must place them in your own garden.</li>
+            <li><strong>END:</strong> End your turn. This will pass the turn to the next player.</li>
+        </ol>
+    </div>
+
+    <div class="section">
+        <h2>Gameplay Details</h2>
+        <h3>Placing Plants</h3>
+        <p>Select a plant from the draft zone and click on an empty square in your garden. You immediately gain the plant's base points. Some plants have special "place effects" that trigger at this time.</p>
+
+        <h3>Growing Plants</h3>
+        <p>Click on a plant in your garden to see its details. If you have the required resources (shown as its "growth cost"), you can click the "Grow" button. A grown plant will trigger its "grow effect," which can earn you more points or resources.</p>
+
+        <h3>Resources</h3>
+        <p>There are three types of resources: 💧 Water, ☀️ Light, and 🌾 Compost. You start with one of each and can gain more from plant effects or at the end of your turn.</p>
+
+        <h3>Pests</h3>
+        <p>When a pest tile is drawn from the deck, every player receives a "pest to place". During your PEST phase, you must place this pest on any garden. Placing a pest on a plant destroys it, and the owner loses that plant's base points. Placing a pest adjacent to another pest increases your "infestation" level.</p>
+    </div>
+
+    <div class="section">
+        <h2>Game End</h2>
+        <p>The game ends for a player when their garden is completely full or their infestation level reaches the maximum limit. The player with the highest score at the end of the game wins.</p>
+    </div>
+
+    <div class="section">
+        <h2>Plants and Effects</h2>
+        <ul class="plant-list">
+            <li><strong>Lavender:</strong> +1 point for each different plant neighbor.</li>
+            <li><strong>Sunflower:</strong> +1 point for each compost neighbor.</li>
+            <li><strong>Mushroom:</strong> +1 point for each Tree neighbor.</li>
+            <li><strong>Tree:</strong> A simple plant with high base points.</li>
+            <li><strong>Daisy:</strong> +1 point for each plant neighbor.</li>
+            <li><strong>Compost:</strong> Not a plant. When placed, gives you +1 compost resource.</li>
+            <li><strong>Pond:</strong> Not a plant. When placed, gives you +2 water resources.</li>
+            <li><strong>Cactus:</strong> +1 point for each empty adjacent space.</li>
+            <li><strong>Bamboo:</strong> +2 points for each adjacent Bamboo.</li>
+            <li><strong>Vine:</strong> +1 point for each grown neighbor.</li>
+            <li><strong>Fern:</strong> +1 light resource when next to a Tree.</li>
+        </ul>
+    </div>
+
+</body>
+</html>
