@@ -36,7 +36,7 @@
     <div class="flex flex-col gap-2 w-full h-full border-primary border rounded-md p-2">
       <h1 class="text-lg ">Garden</h1>
       <div class="grid grid-cols-5 gap-2 w-full">
-        <template v-for="(tile, index) in flattenGarden(state.players[playerId].garden)">
+        <template v-for="(tile, index) in flattenGarden(state.players[playerId]!.garden)">
           <TileCard v-if="tile" :tile="tile" :canBeGrown="canBeGrown(tile)" :compact="true"
             @click="openModal(tile, index)" />
           <div class="aspect-square justify-center items-center flex border border-secondary rounded-md cursor-pointer"
@@ -245,15 +245,15 @@ function canBeGrown(tile: Tile): boolean {
 
 
 async function skipGrowPhase() {
-  const res = await sendCommand("skipGrowPhase", { playerId }).catch((err) => {
+  const cmdResult = await sendCommand("skipGrowPhase", { playerId }).catch((err) => {
     console.error("Error sending command:", err);
   });
 
-  if (res) {
+  if (cmdResult) {
     console.log("Tile placed successfully");
-    state.value = res.game.state as MultiplayerGameState;
+    updateUI()
   } else {
-    console.error("Failed to skip grow phase:", res);
+    console.error("Failed to end turn:", cmdResult);
   }
 }
 
