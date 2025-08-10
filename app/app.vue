@@ -153,31 +153,20 @@ async function placePestTile(x: number, y: number) {
   if (!state.value) return;
 
   if (turnState.value === 'PEST') {
-    const res = await sendCommand("placePestTile", { playerId, x, y, tile: { type: 'pest' } }).catch((err) => {
+    await sendCommand("placePestTile", { playerId, x, y, tile: { type: 'pest' } }).catch((err) => {
       console.error("Error sending command:", err);
     });
-    if (res) {
-      console.log("Tile placed successfully");
-      updateUI();
-    } else {
-      console.error("Failed to place tile:", res);
-    }
+    updateUI();
   }
 }
 
 async function growTile(x: number, y: number) {
   if (!selectedTile.value) return;
   if (!state.value) return;
-  const cmdResult = await sendCommand("growPlant", { playerId, x, y }).catch((err) => {
+  await sendCommand("growPlant", { playerId, x, y }).catch((err) => {
     console.error("Error sending command:", err);
-  });
-
-  if (cmdResult) {
-    console.log("Tile placed successfully");
-    updateUI();
-  } else {
-    console.error("Failed to grow tile:", cmdResult);
-  }
+  })
+  updateUI();
 }
 
 async function placeTile(x: number, y: number) {
@@ -188,38 +177,22 @@ async function placeTile(x: number, y: number) {
     const tileIndex = state.value.draftZone.indexOf(selectedTile.value)
     const cmdResult = await sendCommand("placePlantTile", { playerId, tileIndex, x, y }).catch((err) => {
       console.error("Error sending command:", err);
-    });
-    if (cmdResult) {
-      console.log("Tile placed successfully");
-      updateUI()
-    } else {
-      console.error("Failed to place tile:", cmdResult);
-    }
+    })
+    updateUI();
   }
   else if (turnState.value === 'PEST') {
-    const cmdResult = await sendCommand("placePestTile", { playerId, x, y, tile: { type: 'pest' } }).catch((err) => {
+    await sendCommand("placePestTile", { playerId, x, y, tile: { type: 'pest' } }).catch((err) => {
       console.error("Error sending command:", err);
     });
-    if (cmdResult) {
-      console.log("Tile placed successfully");
-      updateUI()
-    } else {
-      console.error("Failed to place tile:", cmdResult);
-    }
+    updateUI();
   }
 }
 
 async function endturn() {
-  const cmdResult = await sendCommand("nextTurn", { playerId }).catch((err) => {
+  await sendCommand("nextTurn", { playerId }).catch((err) => {
     console.error("Error sending command:", err);
   });
-
-  if (cmdResult) {
-    console.log("Tile placed successfully");
-    updateUI()
-  } else {
-    console.error("Failed to end turn:", cmdResult);
-  }
+  updateUI()
 }
 
 function canBeGrown(tile: Tile): boolean {
@@ -245,16 +218,11 @@ function canBeGrown(tile: Tile): boolean {
 
 
 async function skipGrowPhase() {
-  const cmdResult = await sendCommand("skipGrowPhase", { playerId }).catch((err) => {
+  await sendCommand("skipGrowPhase", { playerId }).catch((err) => {
     console.error("Error sending command:", err);
   });
-
-  if (cmdResult) {
-    console.log("Tile placed successfully");
-    updateUI()
-  } else {
-    console.error("Failed to end turn:", cmdResult);
-  }
+  console.log("Tile placed successfully");
+  updateUI()
 }
 
 const turnState = computed(() => {

@@ -8,8 +8,7 @@ export default defineEventHandler(async (event) => {
         return createError({ statusCode: 400, message: "Invalid command: " + command.type })
     }
     try {
-        const cmdResult = (game as any)[command.type](...command.args);
-        return cmdResult;
+        (game as any)[command.type](...command.args);
     } catch (err: any) {
         return createError({ statusCode: 400, message: err.message })
     }
