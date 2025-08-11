@@ -51,14 +51,14 @@
     </div>
 
     <!-- Main Content -->
-    <div class="p-4 space-y-6">
+    <div class="p-4 space-y-2">
       <!-- Draft Zone -->
       <div v-if="state?.draftZone?.length" class="space-y-3">
         <h2 class="text-white font-semibold text-lg flex items-center gap-2">
           <span class="w-2 h-2 bg-emerald-400 rounded-full"></span>
           Draft Zone
         </h2>
-        <div class="flex gap-3 overflow-x-auto pb-2 -mx-4 p-4">
+        <div class="flex overflow-x-auto pb-2 -mx-4 p-2">
           <label v-for="tile in state.draftZone" :key="tile.id"
             class="flex flex-col items-center cursor-pointer gap-2 flex-shrink-0 p-2 rounded-lg transition-all"
             :class="{ 'ring-2 ring-emerald-400 bg-emerald-400/10': selectedTile?.id === tile.id }">
@@ -87,6 +87,9 @@
           </template>
         </div>
       </div>
+
+      <button class="btn btn-error w-full" @click="resetGame()">Reset game</button>
+
     </div>
 
     <!-- Modals -->
@@ -151,7 +154,28 @@
         <h3 class="text-xl font-bold text-white mb-6">
           {{ turnState === 'PLACE' ? '🌿 Place Plant' : '🐀 Place Pest' }}
         </h3>
-        <div class="flex gap-3">
+        <div class="flex gap-3 flex-col">
+
+          <div v-if="turnState === 'PLACE'" class="flex gap-2">
+            <img :src="`/${selectedTile?.data.name}.jpeg`" class="w-20 h-20 rounded-xl object-cover bg-white/10" />
+            <div class="flex-1 space-y-3">
+              <p class="text-gray-300 text-sm">{{ selectedTile?.data.effect }}</p>
+
+              <div class="flex gap-3 text-sm">
+                <span class="flex items-center gap-1 text-blue-400">
+                  💧 {{ selectedTile?.data.growthCost.water ?? 0 }}
+                </span>
+                <span class="flex items-center gap-1 text-yellow-400">
+                  ☀️ {{ selectedTile?.data.growthCost.light ?? 0 }}
+                </span>
+                <span class="flex items-center gap-1 text-amber-400">
+                  🌾 {{ selectedTile?.data.growthCost.compost ?? 0 }}
+                </span>
+              </div>
+            </div>
+          </div>
+
+
           <button
             class="flex-1 py-3 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors"
             @click="confirmAction()">
