@@ -1,12 +1,12 @@
 <template>
-
-
   <div class="drawer">
     <input id="my-drawer" type="checkbox" class="drawer-toggle" />
     <div class="drawer-content">
       <div class="flex flex-col w-full gap-2 p-4" v-if="state" data-theme="dark">
         <div class="flex flex-col w-full gap-2">
-          <!-- <label for="my-drawer" class="btn btn-primary drawer-button">Open drawer</label> -->
+          <label for="my-drawer">
+            <MenuButton class="size-8 cursor-pointer" />
+          </label>
           <button class="btn btn-primary" @click="skipGrowPhase" :disabled="turnState !== 'GROW'">Skip grow
             phase</button>
           <button class="btn btn-primary" @click="endturn" :disabled="turnState !== 'END'">End turn</button>
@@ -28,7 +28,7 @@
         </div>
 
         <!-- Draftzone -->
-        <div class="flex flex-col gap-2 w-full border-primary border rounded-md p-2">
+        <div class="flex flex-col gap-2 w-full p-2">
           <h1 class="text-lg">Draft zone</h1>
           <div class="flex gap-2 w-full  h-full overflow-y-auto pb-2">
             <label v-for="tile in state.draftZone" :key="tile.id"
@@ -41,7 +41,7 @@
         </div>
 
         <!-- Garden -->
-        <div class="flex flex-col gap-2 w-full h-full border-primary border rounded-md p-2">
+        <div class="flex flex-col gap-2 w-full h-full p-2">
           <h1 class="text-lg ">Garden</h1>
           <div class="grid grid-cols-5 gap-2 w-full">
             <template v-for="(tile, index) in flattenGarden(state.players[playerId]!.garden)">
@@ -55,7 +55,7 @@
         </div>
 
         <!-- Info modal -->
-        <dialog id="my_modal_2" class="modal modal-bottom">
+        <dialog id="confirmation_modal" class="modal modal-bottom">
           <div class="modal-box">
             <div v-if="modalTile?.type === 'plant'" class=" flex flex-col gap-2 w-full">
               <div class="flex w-full justify-between">
@@ -88,15 +88,14 @@
             <button>close</button>
           </form>
         </dialog>
-        <button class="btn btn-warning mt-16" @click="resetGame()">Reset game</button>
 
         <!-- Confirmation modal -->
-        <dialog id="my_modal_1" class="modal modal-bottom">
+        <dialog id="info_modal" class="modal modal-bottom">
           <div class="modal-box">
             <h3 class="text-lg font-bold">{{ turnState === 'PLACE' ? 'Place plant' : 'Place pest' }}</h3>
             <p class="flex w-full justify-around mt-8">
               <button class="btn btn-primary" @click="confirmAction()">Confirm</button>
-              <button class="btn btn-error ml-2" onclick="my_modal_1.close()">Cancel</button>
+              <button class="btn btn-error ml-2" onclick="info_modal.close()">Cancel</button>
             </p>
           </div>
           <form method="dialog" class="modal-backdrop">
@@ -106,19 +105,12 @@
       </div>
     </div>
     <div class="drawer-side">
-      <label for="my-drawer" aria-label="close sidebar" class="drawer-overlay z-[9999]"></label>
-      <ul class="menu bg-base-200 text-base-content min-h-full w-80 p-4">
-        <!-- Sidebar content here -->
-        <li><a>Sidebar Item 1</a></li>
-        <li><a>Sidebar Item 2</a></li>
-      </ul>
+      <label for="my-drawer" aria-label="close sidebar" class="drawer-overlay"></label>
+      <div class="menu bg-base-200 text-white min-h-full w-80 p-4">
+        <button class="btn btn-error" @click="resetGame()">Reset game</button>
+      </div>
     </div>
   </div>
-
-
-
-
-
 </template>
 
 <script lang="ts" setup>
@@ -131,7 +123,7 @@ const selectedTile = ref<PlantTile | null>(null);
 const modalTile = ref<Tile | null>(null);
 const modalTileIndex = ref<number | null>(null);
 
-const playerId = useRoute().query.playerId as PlayerId;
+const playerId = useRoute().query.playerId as PlayerId ?? "louis"
 
 onMounted(async () => {
   const res = await fetch("/api/state");
@@ -175,9 +167,9 @@ function flattenGarden(garden: Garden): (Tile | null)[] {
 let confirmAction = () => { }
 
 function openConfirmationModal(x: number, y: number) {
-  const dialog = document.getElementById("my_modal_1") as HTMLDialogElement;
+  const dialog = document.getElementById("info_modal") as HTMLDialogElement;
   dialog.showModal();
-  console.log("HEY", document.getElementById("my_modal_1"))
+  console.log("HEY", document.getElementById("info_modal"))
   if (turnState.value === 'PLACE') {
     confirmAction = () => {
       placeTile(x, y)
@@ -195,7 +187,7 @@ function openConfirmationModal(x: number, y: number) {
 function openInfoModal(plant: Tile, index: number) {
   modalTile.value = plant;
   modalTileIndex.value = index;
-  (document.getElementById("my_modal_2") as HTMLDialogElement).showModal();
+  (document.getElementById("confirmation_modal") as HTMLDialogElement).showModal();
 }
 
 async function updateUI() {
