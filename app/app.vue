@@ -49,19 +49,19 @@
       <div class="modal-box">
         <div v-if="modalTile?.type === 'plant'" class=" flex flex-col gap-2 w-full">
           <div class="flex w-full justify-between">
-            <h3 class="text-lg font-bold">{{ modalTile?.plant.name }}</h3>
-            <span>⭐️{{ modalTile?.plant.basePoints }}</span>
+            <h3 class="text-lg font-bold">{{ modalTile?.data.name }}</h3>
+            <span>⭐️{{ modalTile?.data.basePoints }}</span>
           </div>
           <div class="flex gap-4 w-full">
-            <img :src="`/${modalTile?.plant.name}.jpeg`" class="h-24 rounded-md" />
+            <img :src="`/${modalTile?.data.name}.jpeg`" class="h-24 rounded-md" />
             <div class="flex flex-col gap-1 w-full">
               <p class="flex justify-between">
-                <span>💧{{ modalTile?.plant.growthCost.water ?? 0 }}</span>
-                <span>☀️{{ modalTile?.plant.growthCost.light ?? 0 }}</span>
-                <span>🌾{{ modalTile?.plant.growthCost.compost ?? 0 }}</span>
+                <span>💧{{ modalTile?.data.growthCost.water ?? 0 }}</span>
+                <span>☀️{{ modalTile?.data.growthCost.light ?? 0 }}</span>
+                <span>🌾{{ modalTile?.data.growthCost.compost ?? 0 }}</span>
               </p>
               <div>
-                {{ modalTile?.plant.effect }}
+                {{ modalTile?.data.effect }}
               </div>
               <div class="flex w-full gap-4 justify-between">
                 <button class="btn btn-sm btn-primary" :disabled="!canBeGrown(modalTile)"
@@ -200,7 +200,7 @@ function canBeGrown(tile: Tile): boolean {
   if (turnState.value !== 'GROW') return false;
   if (!tile || tile.type !== 'plant') return false;
 
-  const resourcesNeeded = tile.plant.growthCost;
+  const resourcesNeeded = tile.data.growthCost;
   // If no cost, can't be grown
   if (!resourcesNeeded || Object.keys(resourcesNeeded).length === 0) return false;
   // if grown, can't be grown
