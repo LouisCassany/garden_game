@@ -14,8 +14,7 @@
             {{ state.currentPlayer === playerId ? 'Current action: ' + turnState : 'Not your turn' }}
           </div>
           <div class="flex flex-col gap-2 border-primary border rounded-md p-2">
-            <h1 class="text-lg">Ressources</h1>
-            <div class="grid grid-cols-6 w-full">
+            <div class="grid grid-cols-3 w-full">
               <div v-for="(resource, label) in resources" :key="label" class="resource-item">
                 <span class="resource-icon">{{ resource.icon }}</span>
                 <transition name="number">
@@ -28,6 +27,7 @@
           </div>
         </div>
 
+        <!-- Draftzone -->
         <div class="flex flex-col gap-2 w-full border-primary border rounded-md p-2">
           <h1 class="text-lg">Draft zone</h1>
           <div class="flex gap-2 w-full  h-full overflow-y-auto pb-2">
@@ -40,6 +40,7 @@
           </div>
         </div>
 
+        <!-- Garden -->
         <div class="flex flex-col gap-2 w-full h-full border-primary border rounded-md p-2">
           <h1 class="text-lg ">Garden</h1>
           <div class="grid grid-cols-5 gap-2 w-full">
@@ -47,8 +48,8 @@
               <TileCard v-if="tile" :tile="tile" :canBeGrown="canBeGrown(tile)" :compact="true"
                 @click="openInfoModal(tile, index)" />
               <div
-                class="aspect-square justify-center items-center flex border border-secondary rounded-md cursor-pointer"
-                @click="openConfirmationModal(index % 5, Math.floor(index / 5))" v-else></div>
+                class="aspect-square justify-center items-center flex border border-secondary rounded-md cursor-pointer text-xl"
+                @click="openConfirmationModal(index % 5, Math.floor(index / 5))" v-else>+</div>
             </template>
           </div>
         </div>
@@ -136,7 +137,6 @@ onMounted(async () => {
   const res = await fetch("/api/state");
   if (res.ok) {
     const body = await res.json()
-    console.log(body)
     state.value = body.game.state as MultiplayerGameState;
     selectedTile.value = state.value.draftZone[0] as PlantTile;
   }
@@ -294,6 +294,14 @@ const resources = computed(() => ({
     icon: '⭐️',
     value: state.value?.players?.[playerId]?.score
   },
+  pest: {
+    icon: '🐀',
+    value: state.value?.players?.[playerId]?.pestToPlace
+  },
+  infestation: {
+    icon: '💣',
+    value: state.value?.players?.[playerId]?.infestation
+  },
   water: {
     icon: '💧',
     value: state.value?.players?.[playerId]?.resources.water
@@ -305,14 +313,6 @@ const resources = computed(() => ({
   compost: {
     icon: '🌾',
     value: state.value?.players?.[playerId]?.resources.compost
-  },
-  pest: {
-    icon: '🐀',
-    value: state.value?.players?.[playerId]?.pestToPlace
-  },
-  infestation: {
-    icon: '💣',
-    value: state.value?.players?.[playerId]?.infestation
   },
 }));
 </script>
