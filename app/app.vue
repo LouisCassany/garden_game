@@ -1,85 +1,123 @@
 <template>
-  <div class="flex flex-col w-full gap-2 p-4" v-if="state" data-theme="dark">
 
-    <div class="flex flex-col w-full gap-2">
-      <button class="btn btn-primary" @click="skipGrowPhase" :disabled="turnState !== 'GROW'">Skip grow phase</button>
-      <button class="btn btn-primary" @click="endturn" :disabled="turnState !== 'END'">End turn</button>
-      <div class="w-full text-center uppercase text-lg font-bold font-mono">
-        {{ state.currentPlayer === playerId ? 'Current action: ' + turnState : 'Not your turn' }}
-      </div>
-      <div class="flex flex-col gap-2 border-primary border rounded-md p-2">
-        <h1 class="text-lg">Ressources</h1>
-        <div class="grid grid-cols-6 w-full">
-          <div v-for="(resource, label) in resources" :key="label" class="resource-item">
-            <span class="resource-icon">{{ resource.icon }}</span>
-            <transition name="number">
-              <span :key="resource.value" class="resource-value">
-                {{ resource.value }}
-              </span>
-            </transition>
+
+  <div class="drawer">
+    <input id="my-drawer" type="checkbox" class="drawer-toggle" />
+    <div class="drawer-content">
+      <div class="flex flex-col w-full gap-2 p-4" v-if="state" data-theme="dark">
+        <div class="flex flex-col w-full gap-2">
+          <!-- <label for="my-drawer" class="btn btn-primary drawer-button">Open drawer</label> -->
+          <button class="btn btn-primary" @click="skipGrowPhase" :disabled="turnState !== 'GROW'">Skip grow
+            phase</button>
+          <button class="btn btn-primary" @click="endturn" :disabled="turnState !== 'END'">End turn</button>
+          <div class="w-full text-center uppercase text-lg font-bold font-mono">
+            {{ state.currentPlayer === playerId ? 'Current action: ' + turnState : 'Not your turn' }}
           </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="flex flex-col gap-2 w-full border-primary border rounded-md p-2">
-      <h1 class="text-lg">Draft zone</h1>
-      <div class="flex gap-2 w-full  h-full overflow-y-auto pb-2">
-        <label v-for="tile in state.draftZone" :key="tile.id" class="flex flex-col items-center cursor-pointer gap-2">
-          <input type="radio" name="draft" class="radio radio-secondary" v-model="selectedTile" :value="tile"
-            :disabled="turnState !== 'PLACE'" />
-          <TileCard :tile="tile" :canBeGrown="false" />
-        </label>
-      </div>
-    </div>
-
-    <div class="flex flex-col gap-2 w-full h-full border-primary border rounded-md p-2">
-      <h1 class="text-lg ">Garden</h1>
-      <div class="grid grid-cols-5 gap-2 w-full">
-        <template v-for="(tile, index) in flattenGarden(state.players[playerId]!.garden)">
-          <TileCard v-if="tile" :tile="tile" :canBeGrown="canBeGrown(tile)" :compact="true"
-            @click="openModal(tile, index)" />
-          <div class="aspect-square justify-center items-center flex border border-secondary rounded-md cursor-pointer"
-            @click="placeTile(index % 5, Math.floor(index / 5))" v-else></div>
-        </template>
-      </div>
-    </div>
-
-    <dialog id="my_modal_2" class="modal modal-bottom">
-      <div class="modal-box">
-        <div v-if="modalTile?.type === 'plant'" class=" flex flex-col gap-2 w-full">
-          <div class="flex w-full justify-between">
-            <h3 class="text-lg font-bold">{{ modalTile?.data.name }}</h3>
-            <span>⭐️{{ modalTile?.data.basePoints }}</span>
-          </div>
-          <div class="flex gap-4 w-full">
-            <img :src="`/${modalTile?.data.name}.jpeg`" class="h-24 rounded-md" />
-            <div class="flex flex-col gap-1 w-full">
-              <p class="flex justify-between">
-                <span>💧{{ modalTile?.data.growthCost.water ?? 0 }}</span>
-                <span>☀️{{ modalTile?.data.growthCost.light ?? 0 }}</span>
-                <span>🌾{{ modalTile?.data.growthCost.compost ?? 0 }}</span>
-              </p>
-              <div>
-                {{ modalTile?.data.effect }}
+          <div class="flex flex-col gap-2 border-primary border rounded-md p-2">
+            <h1 class="text-lg">Ressources</h1>
+            <div class="grid grid-cols-6 w-full">
+              <div v-for="(resource, label) in resources" :key="label" class="resource-item">
+                <span class="resource-icon">{{ resource.icon }}</span>
+                <transition name="number">
+                  <span :key="resource.value" class="resource-value">
+                    {{ resource.value }}
+                  </span>
+                </transition>
               </div>
-              <div class="flex w-full gap-4 justify-between">
-                <button class="btn btn-sm btn-primary" :disabled="!canBeGrown(modalTile)"
-                  @click="growTile(modalTileIndex! % 5, Math.floor(modalTileIndex! / 5))">Grow</button>
-                <button class="btn btn-sm btn-error " v-if="turnState === 'PEST'"
-                  @click="placePestTile(modalTileIndex! % 5, Math.floor(modalTileIndex! / 5))">Place pest</button>
-              </div>
-
             </div>
           </div>
         </div>
+
+        <div class="flex flex-col gap-2 w-full border-primary border rounded-md p-2">
+          <h1 class="text-lg">Draft zone</h1>
+          <div class="flex gap-2 w-full  h-full overflow-y-auto pb-2">
+            <label v-for="tile in state.draftZone" :key="tile.id"
+              class="flex flex-col items-center cursor-pointer gap-2">
+              <input type="radio" name="draft" class="radio radio-secondary" v-model="selectedTile" :value="tile"
+                :disabled="turnState !== 'PLACE'" />
+              <TileCard :tile="tile" :canBeGrown="false" />
+            </label>
+          </div>
+        </div>
+
+        <div class="flex flex-col gap-2 w-full h-full border-primary border rounded-md p-2">
+          <h1 class="text-lg ">Garden</h1>
+          <div class="grid grid-cols-5 gap-2 w-full">
+            <template v-for="(tile, index) in flattenGarden(state.players[playerId]!.garden)">
+              <TileCard v-if="tile" :tile="tile" :canBeGrown="canBeGrown(tile)" :compact="true"
+                @click="openInfoModal(tile, index)" />
+              <div
+                class="aspect-square justify-center items-center flex border border-secondary rounded-md cursor-pointer"
+                @click="openConfirmationModal(index % 5, Math.floor(index / 5))" v-else></div>
+            </template>
+          </div>
+        </div>
+
+        <!-- Info modal -->
+        <dialog id="my_modal_2" class="modal modal-bottom">
+          <div class="modal-box">
+            <div v-if="modalTile?.type === 'plant'" class=" flex flex-col gap-2 w-full">
+              <div class="flex w-full justify-between">
+                <h3 class="text-lg font-bold">{{ modalTile?.data.name }}</h3>
+                <span>⭐️{{ modalTile?.data.basePoints }}</span>
+              </div>
+              <div class="flex gap-4 w-full">
+                <img :src="`/${modalTile?.data.name}.jpeg`" class="h-24 rounded-md" />
+                <div class="flex flex-col gap-1 w-full">
+                  <div>
+                    {{ modalTile?.data.effect }}
+                  </div>
+                  <p class="flex justify-between">
+                    <span>💧{{ modalTile?.data.growthCost.water ?? 0 }}</span>
+                    <span>☀️{{ modalTile?.data.growthCost.light ?? 0 }}</span>
+                    <span>🌾{{ modalTile?.data.growthCost.compost ?? 0 }}</span>
+                  </p>
+                  <div class="flex w-full gap-4 justify-between">
+                    <button class="btn btn-sm btn-primary" :disabled="!canBeGrown(modalTile)"
+                      @click="growTile(modalTileIndex! % 5, Math.floor(modalTileIndex! / 5))">Grow</button>
+                    <button class="btn btn-sm btn-error " v-if="turnState === 'PEST'"
+                      @click="placePestTile(modalTileIndex! % 5, Math.floor(modalTileIndex! / 5))">Place pest</button>
+                  </div>
+
+                </div>
+              </div>
+            </div>
+          </div>
+          <form method="dialog" class="modal-backdrop">
+            <button>close</button>
+          </form>
+        </dialog>
+        <button class="btn btn-warning mt-16" @click="resetGame()">Reset game</button>
+
+        <!-- Confirmation modal -->
+        <dialog id="my_modal_1" class="modal modal-bottom">
+          <div class="modal-box">
+            <h3 class="text-lg font-bold">{{ turnState === 'PLACE' ? 'Place plant' : 'Place pest' }}</h3>
+            <p class="flex w-full justify-around mt-8">
+              <button class="btn btn-primary" @click="confirmAction()">Confirm</button>
+              <button class="btn btn-error ml-2" onclick="my_modal_1.close()">Cancel</button>
+            </p>
+          </div>
+          <form method="dialog" class="modal-backdrop">
+            <button>close</button>
+          </form>
+        </dialog>
       </div>
-      <form method="dialog" class="modal-backdrop">
-        <button>close</button>
-      </form>
-    </dialog>
-    <button class="btn btn-warning mt-16" @click="resetGame()">Reset game</button>
+    </div>
+    <div class="drawer-side">
+      <label for="my-drawer" aria-label="close sidebar" class="drawer-overlay z-[9999]"></label>
+      <ul class="menu bg-base-200 text-base-content min-h-full w-80 p-4">
+        <!-- Sidebar content here -->
+        <li><a>Sidebar Item 1</a></li>
+        <li><a>Sidebar Item 2</a></li>
+      </ul>
+    </div>
   </div>
+
+
+
+
+
 </template>
 
 <script lang="ts" setup>
@@ -134,7 +172,27 @@ function flattenGarden(garden: Garden): (Tile | null)[] {
   return garden.flat();
 }
 
-function openModal(plant: Tile, index: number) {
+let confirmAction = () => { }
+
+function openConfirmationModal(x: number, y: number) {
+  const dialog = document.getElementById("my_modal_1") as HTMLDialogElement;
+  dialog.showModal();
+  console.log("HEY", document.getElementById("my_modal_1"))
+  if (turnState.value === 'PLACE') {
+    confirmAction = () => {
+      placeTile(x, y)
+      dialog.close()
+    }
+  }
+  else if (turnState.value === 'PEST') {
+    confirmAction = () => {
+      placePestTile(x, y)
+      dialog.close()
+    }
+  }
+}
+
+function openInfoModal(plant: Tile, index: number) {
   modalTile.value = plant;
   modalTileIndex.value = index;
   (document.getElementById("my_modal_2") as HTMLDialogElement).showModal();
@@ -175,7 +233,7 @@ async function placeTile(x: number, y: number) {
 
   if (turnState.value === 'PLACE') {
     const tileIndex = state.value.draftZone.indexOf(selectedTile.value)
-    const cmdResult = await sendCommand("placePlantTile", { playerId, tileIndex, x, y }).catch((err) => {
+    await sendCommand("placeTile", { playerId, tileIndex, x, y }).catch((err) => {
       console.error("Error sending command:", err);
     })
     updateUI();

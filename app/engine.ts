@@ -75,7 +75,7 @@ interface GameCommands {
         args: Parameters<MultiplayerGardenGame["growPlant"]>;
         return: ReturnType<MultiplayerGardenGame["growPlant"]>;
     };
-    placePlantTile: {
+    placeTile: {
         args: Parameters<MultiplayerGardenGame["placeTile"]>;
         return: ReturnType<MultiplayerGardenGame["placeTile"]>;
     };

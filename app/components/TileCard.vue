@@ -12,7 +12,7 @@
 
         <!-- Non-compact overlay -->
         <div v-if="!compact"
-            class="relative z-10 flex flex-col justify-between h-full backdrop-blur-[3px] text-white  p-1 rounded-md">
+            class="relative z-0 flex flex-col justify-between h-full backdrop-blur-[3px] text-white  p-1 rounded-md">
             <div class="flex w-full justify-between font-bold">
                 <span>{{ tile.data.name }}</span>
                 <span>⭐️{{ tile.data.basePoints }}</span>
