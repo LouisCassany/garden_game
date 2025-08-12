@@ -22,6 +22,7 @@ export interface MultiplayerGameState {
     currentTurn: number;
     currentPlayer: PlayerId;
     log: string[];
+    winner: PlayerId | null;
 }
 
 interface PlantData {
@@ -296,7 +297,7 @@ export default class MultiplayerGardenGame {
                 resources: { water: 1, light: 1, compost: 1 },
                 infestation: 0,
                 turnState: 'PLACE',
-                pestToPlace: 1,
+                pestToPlace: 22,
             };
         }
 
@@ -307,6 +308,7 @@ export default class MultiplayerGardenGame {
             currentTurn: 1,
             currentPlayer: playerIds[0] as PlayerId,
             log: [],
+            winner: null,
         };
 
         // Fill the draft zone with cards ensuring pest are not drawn first
@@ -352,23 +354,22 @@ export default class MultiplayerGardenGame {
     growPlant({ playerId, x, y }: { playerId: PlayerId, x: number, y: number }) {
         if (playerId !== this.state.currentPlayer) throw new Error('Not your turn');
         const playerState = this.state.players[playerId] as PlayerState;
-        if (!playerState || playerState.turnState !== 'GROW') throw new Error('Incorrect turn state');
+        if (!playerState || playerState.turnState === 'DONE') throw new Error('Player is done playing');
+        if (playerState.turnState !== 'GROW') throw new Error('Incorrect turn state');
 
+        // Rest of the existing logic...
         const tile = playerState.garden[y]![x];
-        if (!tile || !this.isPlantTile(tile) || tile.grown) throw new Error('Invalid tile to grow (not plant or already grown)');
+        if (!tile || !this.isPlantTile(tile) || tile.grown) throw new Error('Invalid tile to grow');
 
-        // if the plant have no growth cost, it can't be grown
         const resourcesNeeded = tile.data.growthCost;
         if (!resourcesNeeded || Object.keys(resourcesNeeded).length === 0) throw new Error('Invalid tile to grow (no growth cost)');
 
         const cost = tile.data.growthCost;
         if (!this.hasResources(playerId, cost)) throw new Error('Not enough resources');
 
-        // Spend the player resources
         this.spendResources(playerId, cost);
         tile.grown = true;
 
-        // Trigger the plant's grow effect
         const neighbors = this.getNeighbors(playerState.garden, x, y);
         tile.data.growEffect(neighbors, playerState);
 
@@ -380,10 +381,11 @@ export default class MultiplayerGardenGame {
     placeTile({ playerId, tileIndex, x, y }: { playerId: PlayerId, tileIndex: number, x: number, y: number }) {
         if (playerId !== this.state.currentPlayer) throw new Error('Not your turn');
         const playerState = this.state.players[playerId];
-        if (!playerState || playerState.turnState !== 'PLACE') throw new Error('Cannot place tile this turn');
-        if (!this.inBounds(x, y)) throw new Error('Out of bounds');
+        if (!playerState || playerState.turnState === 'DONE') throw new Error('Player is done playing');
+        if (playerState.turnState !== 'PLACE') throw new Error('Cannot place tile this turn');
 
-        // Select the tile from the draft zone
+        // Rest of existing logic...
+        if (!this.inBounds(x, y)) throw new Error('Out of bounds');
         const tile = this.state.draftZone[tileIndex];
         if (!tile) throw new Error('Invalid tile index');
         const existing = playerState.garden[y]![x];
@@ -396,14 +398,13 @@ export default class MultiplayerGardenGame {
         playerState.score += tile.data.basePoints;
 
         this.nextTurnPhase(playerId);
-
         this.log(`Player ${playerId} placed ${tile.type} at (${x}, ${y})`);
     }
 
-    // Player action
     placePestTile({ playerId, x, y, tile }: { playerId: PlayerId, x: number, y: number, tile: PestTile }) {
         if (playerId !== this.state.currentPlayer) throw new Error('Not your turn');
         const playerState = this.state.players[playerId];
+        if (!playerState || playerState.turnState === 'DONE') throw new Error('Player is done playing');
         if (!playerState || playerState.turnState !== 'PEST') throw new Error('Cannot place pest this turn');
 
         if (!this.inBounds(x, y)) throw new Error('Out of bounds');
@@ -456,13 +457,25 @@ export default class MultiplayerGardenGame {
     private nextTurnPhase(playerId: PlayerId) {
         const playerState = this.state.players[playerId];
         if (!playerState) return;
-        if (playerState.turnState === 'PLACE') playerState.turnState = 'GROW';
-        else if (playerState.turnState === 'GROW' && playerState.pestToPlace > 0) playerState.turnState = 'PEST';
-        else if (playerState.turnState === 'GROW' && playerState.pestToPlace === 0) playerState.turnState = 'END';
-        else if (playerState.turnState === 'PEST' && playerState.pestToPlace === 0) playerState.turnState = 'END';
-        else if (playerState.turnState === 'END') {
-            if (this.isPlayerDonePlaying(playerId)) playerState.turnState = 'DONE';
-            else playerState.turnState = 'PLACE';
+
+        // If player is already done, don't change their state
+        if (playerState.turnState === 'DONE') return;
+
+        if (playerState.turnState === 'PLACE') {
+            playerState.turnState = 'GROW';
+        } else if (playerState.turnState === 'GROW' && playerState.pestToPlace > 0) {
+            playerState.turnState = 'PEST';
+        } else if (playerState.turnState === 'GROW' && playerState.pestToPlace === 0) {
+            playerState.turnState = 'END';
+        } else if (playerState.turnState === 'PEST' && playerState.pestToPlace === 0) {
+            playerState.turnState = 'END';
+        } else if (playerState.turnState === 'END') {
+            if (this.isPlayerDonePlaying(playerId)) {
+                playerState.turnState = 'DONE';
+                this.log(`Player ${playerId} is done playing!`);
+            } else {
+                playerState.turnState = 'PLACE';
+            }
         }
     }
 
@@ -486,35 +499,81 @@ export default class MultiplayerGardenGame {
     }
 
     nextTurn({ playerId }: { playerId: PlayerId }) {
-        if (playerId !== this.state.currentPlayer || this.state.players[playerId]!.turnState !== 'END') throw new Error('Not your turn');
+        if (playerId !== this.state.currentPlayer || this.state.players[playerId]!.turnState !== 'END') {
+            throw new Error('Not your turn or wrong turn state');
+        }
 
+        // First, handle the current player's end-of-turn effects
+        this.nextTurnPhase(playerId); // This will set them to DONE if appropriate
+        this.gainRandomResource(playerId);
+        this.gainRandomResource(playerId);
+
+        // Find next active player
+        const nextPlayer = this.findNextActivePlayer();
+
+        if (!nextPlayer) {
+            // All players are done
+            this.log(`Game over! Winner: ${this.getWinner()}`);
+            this.state.winner = this.getWinner();
+            return;
+        }
+
+        // Update turn counters
         const playerIds = Object.keys(this.state.players);
         const currentIndex = playerIds.indexOf(playerId);
-        const nextIndex = (currentIndex + 1) % playerIds.length;
+        const nextIndex = playerIds.indexOf(nextPlayer);
 
-        if (nextIndex === 0) {
+        // Only increment turn counter when we complete a full round
+        if (nextIndex <= currentIndex) {
             this.state.currentTurn++;
         }
 
-        // Set the next player as current
-        this.state.currentPlayer = playerIds[nextIndex] as PlayerId;
+        this.state.currentPlayer = nextPlayer;
 
-        // Draw a new tile and while we draw pest tiles, count them
+        // Draw new card and handle pest draws
+        this.drawAndHandleNewCard();
+    }
+
+    private drawAndHandleNewCard() {
         let newCard = this.drawTile();
         while (newCard?.type === 'pest') {
-            // Increase pest count for all players
+            // Increase pest count only for active players
             for (const player of Object.values(this.state.players)) {
-                player.pestToPlace++;
+                if (player.turnState !== 'DONE') {
+                    player.pestToPlace++;
+                }
             }
-            this.log(`All players gained a pest to place at the end of their turn`);
+            this.log(`Active players gained a pest to place at the end of their turn`);
             newCard = this.drawTile();
         }
+
         if (newCard) {
             this.state.draftZone.push(newCard);
         }
-        this.nextTurnPhase(playerId);
-        this.gainRandomResource(playerId);
-        this.gainRandomResource(playerId);
+    }
+
+    // 3. New helper method to find the next active player
+    private findNextActivePlayer(): PlayerId | null {
+        const playerIds = Object.keys(this.state.players);
+        const currentIndex = playerIds.indexOf(this.state.currentPlayer);
+
+        // Check each player starting from the next one
+        for (let i = 1; i <= playerIds.length; i++) {
+            const nextIndex = (currentIndex + i) % playerIds.length;
+            const nextPlayerId = playerIds[nextIndex] as PlayerId;
+            const nextPlayerState = this.state.players[nextPlayerId];
+
+            if (nextPlayerState && nextPlayerState.turnState !== 'DONE') {
+                return nextPlayerId;
+            }
+        }
+
+        // All players are done
+        return null;
+    }
+
+    isGameOver(): boolean {
+        return Object.values(this.state.players).every(player => player.turnState === 'DONE');
     }
 
     isPlayerDonePlaying(playerId: PlayerId): boolean {
@@ -526,17 +585,41 @@ export default class MultiplayerGardenGame {
 
 
     getWinner(): PlayerId | null {
-        let highestScore = -1;
-        let winner: PlayerId | null = null;
+        const activePlayers = Object.entries(this.state.players)
+            .filter(([_, player]) => player.turnState === 'DONE');
 
-        for (const [playerId, player] of Object.entries(this.state.players)) {
+        if (activePlayers.length === 0) return null;
+
+        let highestScore = -1;
+        let winners: PlayerId[] = [];
+
+        // Find highest score
+        for (const [playerId, player] of activePlayers) {
             if (player.score > highestScore) {
                 highestScore = player.score;
-                winner = playerId;
+                winners = [playerId];
+            } else if (player.score === highestScore) {
+                winners.push(playerId);
             }
         }
 
-        return winner;
+        // Tiebreaker: player with fewer infestations wins
+        if (winners.length > 1) {
+            let lowestInfestation = Infinity;
+            let finalWinner = winners[0] as PlayerId;
+
+            for (const playerId of winners) {
+                const player = this.state.players[playerId]!;
+                if (player.infestation < lowestInfestation) {
+                    lowestInfestation = player.infestation;
+                    finalWinner = playerId;
+                }
+            }
+
+            return finalWinner
+        }
+
+        return winners[0] || null;
     }
 
     private log(message: string) {

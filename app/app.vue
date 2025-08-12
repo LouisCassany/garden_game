@@ -10,6 +10,15 @@
 
         <!-- Turn Status -->
         <div class="flex-1 mx-4">
+          <div v-if="state?.winner" class="text-center">
+            <div class="text-xs text-emerald-200 uppercase tracking-wide font-medium">
+              Game Over
+            </div>
+            <div class="text-sm text-white font-bold">
+              {{ state?.winner === playerId ? 'You Win!' : 'You Lose!' }}
+            </div>
+          </div>
+
           <div class="text-center">
             <div class="text-xs text-emerald-200 uppercase tracking-wide font-medium">
               {{ state?.currentPlayer === playerId ? 'Your Turn' : 'Waiting...' }}
@@ -333,6 +342,7 @@ async function placePestTile(x: number, y: number) {
     await sendCommand("placePestTile", { playerId, x, y, tile: { type: 'pest' } }).catch((err) => {
       console.error("Error sending command:", err);
     });
+    confirmationModal.value?.close();
     updateUI();
   }
 }
