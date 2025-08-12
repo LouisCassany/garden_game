@@ -63,7 +63,7 @@
             class="flex flex-col items-center cursor-pointer gap-2 flex-shrink-0 p-2 rounded-lg transition-all"
             :class="{ 'ring-2 ring-emerald-400 bg-emerald-400/10': selectedTile?.id === tile.id }">
             <input type="radio" name="draft" class="radio radio-secondary" v-model="selectedTile" :value="tile"
-              :disabled="turnState !== 'PLACE'" />
+              :disabled="turnState !== 'PLACE' || state.currentPlayer !== playerId"></input>
             <TileCard :tile="tile" :canBeGrown="false" />
           </label>
         </div>
@@ -71,19 +71,33 @@
 
       <!-- Garden -->
       <div class="space-y-3">
-        <h2 class="text-white font-semibold text-lg flex items-center gap-2">
-          <span class="w-2 h-2 bg-green-400 rounded-full"></span>
-          Your Garden
-        </h2>
+        <div class="flex items-center justify-between">
+          <h2 class="text-white font-semibold text-lg flex items-center gap-2">
+            <span class="w-2 h-2 bg-green-400 rounded-full"></span>
+            <select v-model="viewingPlayer"
+              class="bg-white/10 text-white rounded-lg px-3 py-2 text-sm border border-white/20 focus:ring-2 focus:ring-emerald-400 focus:outline-none">
+              <option v-for="(player, id) in state.players" :key="id" :value="id"
+                class="bg-slate-800 text-white cursor-pointer">
+                {{ id === playerId ? 'Your Garden' : `${id}'s Garden` }}
+              </option>
+            </select>
+            <!-- {{ viewingPlayer === playerId ? 'Your Garden' : `${viewingPlayer}'s Garden` }} -->
+          </h2>
+        </div>
         <div class="grid grid-cols-5 gap-2">
-          <template v-for="(tile, index) in flattenGarden(state.players[playerId]!.garden)">
+          <template v-for="(tile, index) in flattenGarden(state.players[viewingPlayer!]!.garden)">
             <TileCard v-if="tile" :tile="tile" :canBeGrown="canBeGrown(tile)" :compact="true"
-              @click="openInfoModal(tile, index)" class="cursor-pointer hover:scale-105 transition-transform" />
-            <button
+              @click="openInfoModal(tile, index)"
+              :class="viewingPlayer === playerId ? 'cursor-pointer hover:scale-105 transition-transform' : 'cursor-default'" />
+            <button v-else-if="viewingPlayer === playerId"
               class="aspect-square flex items-center justify-center bg-white/10 hover:bg-white/20 border-2 border-dashed border-white/30 rounded-xl transition-all active:scale-95"
-              @click="openConfirmationModal(index % 5, Math.floor(index / 5))" v-else>
+              @click="openConfirmationModal(index % 5, Math.floor(index / 5))">
               <span class="text-2xl text-white/60">+</span>
             </button>
+            <div v-else
+              class="aspect-square flex items-center justify-center bg-white/5 border-2 border-dashed border-white/20 rounded-xl">
+              <span class="text-xl text-white/30">·</span>
+            </div>
           </template>
         </div>
       </div>
@@ -128,7 +142,7 @@
             </div>
           </div>
 
-          <div class="flex gap-3">
+          <div v-if="viewingPlayer === playerId" class="flex gap-3">
             <button
               class="flex-1 py-3 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-white font-medium rounded-lg transition-colors"
               :disabled="!canBeGrown(modalTile)"
@@ -140,6 +154,9 @@
               @click="placePestTile(modalTileIndex! % 5, Math.floor(modalTileIndex! / 5))">
               🐀 Place Pest
             </button>
+          </div>
+          <div v-else class="text-center text-gray-400 text-sm py-2">
+            Viewing {{ viewingPlayer }}'s plant
           </div>
         </div>
       </div>
@@ -222,8 +239,8 @@ const modalTileIndex = ref<number | null>(null);
 const drawerOpen = ref(false);
 const confirmationModal = ref<HTMLDialogElement | null>(null);
 const infoModal = ref<HTMLDialogElement | null>(null);
-
 const playerId = useRoute().query.playerId as PlayerId ?? "louis"
+const viewingPlayer = ref<PlayerId | null>(null);
 
 onMounted(async () => {
   const res = await fetch("/api/state");
@@ -232,6 +249,8 @@ onMounted(async () => {
     state.value = body.game.state as MultiplayerGameState;
     selectedTile.value = state.value.draftZone[0] as PlantTile;
   }
+
+  viewingPlayer.value = playerId;
 
   setInterval(async () => {
     if (state.value?.currentPlayer === playerId) return;
