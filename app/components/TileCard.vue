@@ -19,7 +19,7 @@
                 <span>{{ tile.data.name }}</span>
                 <span>⭐️{{ tile.data.basePoints }}</span>
             </div>
-            <div v-if="tile.data.effect" class="text-center bg-black/50 rounded-md">{{ tile.data.effect }}</div>
+            <div v-if="tile.data.effect" class="text-center bg-black/50 rounded-md text-xs">{{ tile.data.effect }}</div>
             <div class="flex flex-col gap-1">
                 <p class="flex justify-between" v-if="canGrow(tile)">
                     <span>💧{{ tile.data.growthCost.water ?? 0 }}</span>

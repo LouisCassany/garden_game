@@ -1,5 +1,5 @@
 type Resource = 'water' | 'light' | 'compost';
-type PlantName = 'Lavender' | 'Sunflower' | 'Mushroom' | 'Tree' | 'Daisy' | 'Cactus' | 'Bamboo' | 'Vine' | 'Fern' | 'LemonTree';
+type PlantName = 'Lavender' | 'Sunflower' | 'Mushroom' | 'Tree' | 'Daisy' | 'Cactus' | 'Bamboo' | 'Vine' | 'Fern' | 'LemonTree' | 'WaterLily' | 'Honeysuckle' | 'Pumpkin' | 'BeanPlant';
 // type BuildingName = 'Pond' | 'Compost'
 export type TurnState = 'PLACE' | 'GROW' | 'PEST' | 'END' | 'DONE';
 
@@ -146,56 +146,61 @@ function generateId(): string {
 // ]
 
 // Plant definitions
+// Balanced plant definitions
 const plantLibrary: PlantData[] = [
     {
         name: 'Lavender',
         growthCost: { water: 1, light: 1 },
         basePoints: 2,
         growEffect: (neighbors, playerState) => {
-            const neighborsCount = neighbors.filter(t => t?.type === 'plant' && t.data.name !== 'Lavender').length;
+            const neighborsCount = neighbors.filter(t =>
+                t?.type === 'plant' && t.data.name !== 'Lavender'
+            ).length;
             if (neighborsCount > 0) {
                 playerState.score += neighborsCount;
             }
         },
-        description: 'Lavender thrives near other plants, but not near Lavender itself.',
-        effect: '+1 point for each different plant neighbor',
+        description: 'Thrives near other plants, but not near other Lavenders.',
+        effect: '+1 point for each plant neighbor (excluding Lavender)',
     },
     {
         name: 'Sunflower',
         growthCost: { water: 1 },
         basePoints: 2,
         growEffect: (neighbors, playerState) => {
-            playerState.resources.light += 2;
+            if (neighbors.some(t => t?.type === 'plant')) {
+                playerState.resources.light += 2;
+                playerState.score += 1; // small point boost for balance
+            }
         },
-        description: 'Sunflower loves light.',
-        effect: '+2 light ressource',
+        description: 'Loves light, even more when near other plants.',
+        effect: '+2 light if at least 1 plant neighbor, +1 point',
     },
     {
         name: 'Mushroom',
         growthCost: { compost: 2 },
         basePoints: 1,
         growEffect: (neighbors, playerState) => {
-            const neighborsCount = neighbors.some(t => t?.type === 'plant' && t.data.name === 'Tree') ? 1 : 0;
-            if (neighborsCount > 0) {
+            if (neighbors.some(t => t?.type === 'plant' && t.data.name === 'Tree')) {
                 playerState.score += 1;
             }
         },
         effect: '+1 point for each Tree neighbor',
-        description: 'Mushrooms grow well near trees.',
+        description: 'Grows well near trees.',
     },
     {
         name: 'Tree',
         growthCost: {},
         basePoints: 3,
         growEffect: () => { },
-        description: 'Trees are strong but require more resources.',
-        effect: "",
+        description: 'Strong and steady. Provides shade for some plants.',
+        effect: 'No special effect',
     },
     {
         name: 'Daisy',
         growthCost: { water: 1, light: 1 },
         basePoints: 1,
-        description: 'Daisies love being around other plants.',
+        description: 'Loves being around other plants.',
         effect: '+1 point for each plant neighbor',
         growEffect: (neighbors, playerState) => {
             const neighborsCount = neighbors.filter(t => t?.type === 'plant').length;
@@ -214,8 +219,8 @@ const plantLibrary: PlantData[] = [
                 playerState.score += emptySpaces;
             }
         },
-        description: 'Cactus thrives in isolation.',
-        effect: '+1 point for each empty adjacent space',
+        description: 'Thrives in isolation from both plants and pests.',
+        effect: '+1 point for each empty adjacent space (no plants or pests)',
     },
     {
         name: 'Bamboo',
@@ -229,7 +234,7 @@ const plantLibrary: PlantData[] = [
                 playerState.score += bambooNeighbors * 2;
             }
         },
-        description: 'Bamboo grows in clusters.',
+        description: 'Grows in clusters with other bamboo.',
         effect: '+2 points for each adjacent Bamboo',
     },
     {
@@ -244,23 +249,21 @@ const plantLibrary: PlantData[] = [
                 playerState.score += grownNeighbors;
             }
         },
-        description: 'Vines benefit from grown plants.',
-        effect: '+1 point for each grown neighbor',
+        description: 'Benefits from grown plants nearby.',
+        effect: '+1 point for each grown plant neighbor',
     },
     {
         name: 'Fern',
         growthCost: { water: 1 },
         basePoints: 1,
         growEffect: (neighbors, playerState) => {
-            const treeNeighbors = neighbors.some(t =>
-                t?.type === 'plant' && t.data.name === 'Tree'
-            );
-            if (treeNeighbors) {
-                playerState.resources.light += 2;
+            if (neighbors.some(t => t?.type === 'plant' && t.data.name === 'Tree')) {
+                playerState.resources.light += 1;
+                playerState.score += 1;
             }
         },
-        description: 'Ferns grow in tree shade. ',
-        effect: "+2 light resource when next to a Tree",
+        description: 'Grows in tree shade.',
+        effect: '+1 light and +1 point if next to a Tree',
     },
     {
         name: 'LemonTree',
@@ -270,11 +273,68 @@ const plantLibrary: PlantData[] = [
             playerState.score += 5;
             playerState.pestToPlace++;
         },
-        description: 'Lemon trees are beautiful but attract pests.',
-        effect: "+5 points and +1 pest",
-    }
+        description: 'Beautiful but attracts pests.',
+        effect: '+5 points and +1 pest to place',
+    },
 
+    // --- New water-giving plants ---
+    {
+        name: 'WaterLily',
+        growthCost: { light: 1 },
+        basePoints: 1,
+        growEffect: (neighbors, playerState) => {
+            const emptySpaces = neighbors.filter(t => t === null).length;
+            playerState.resources.water += emptySpaces;
+            playerState.score += 1; // incentive
+        },
+        description: 'Collects water from open surroundings.',
+        effect: '+1 water per empty space, +1 point',
+    },
+    {
+        name: 'Honeysuckle',
+        growthCost: { compost: 1 },
+        basePoints: 1,
+        growEffect: (neighbors, playerState) => {
+            const plantNeighbors = neighbors.filter(t => t?.type === 'plant').length;
+            playerState.resources.water += plantNeighbors;
+            if (plantNeighbors > 1) playerState.score += 1; // reward clustering
+        },
+        description: 'Draws water from nearby plants.',
+        effect: '+1 water per plant neighbor, +1 point if ≥ 2 plant neighbors',
+    },
+
+    // --- New compost-giving plants ---
+    {
+        name: 'Pumpkin',
+        growthCost: { water: 1, light: 1 },
+        basePoints: 2,
+        growEffect: (neighbors, playerState) => {
+            if (neighbors.some(t => t?.type === 'plant' && t.data.name === 'Mushroom')) {
+                playerState.resources.compost += 3;
+            } else {
+                playerState.resources.compost += 1;
+            }
+            playerState.score += 1;
+        },
+        description: 'Thrives with fungi.',
+        effect: '+1 compost (+3 if next to Mushroom) and +1 point',
+    },
+    {
+        name: 'BeanPlant',
+        growthCost: { water: 1 },
+        basePoints: 1,
+        growEffect: (neighbors, playerState) => {
+            const grownNeighbors = neighbors.filter(t =>
+                t?.type === 'plant' && t.grown
+            ).length;
+            playerState.resources.compost += grownNeighbors;
+            if (grownNeighbors > 0) playerState.score += 1;
+        },
+        description: 'Improves soil around mature plants.',
+        effect: '+1 compost per grown neighbor, +1 point if any grown neighbor',
+    }
 ];
+
 
 export default class MultiplayerGardenGame {
     state: MultiplayerGameState;
