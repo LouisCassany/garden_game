@@ -35,8 +35,8 @@
         </div>
     </div>
 
-    <img src="/pest.jpeg" class="pest-tile size-full rounded-md border border-secondary"
-        v-else-if="tile.type === 'pest'" />
+    <img v-else-if="tile.type === 'pest'" src="/pest.jpeg"
+        class="pest-tile size-full rounded-md border border-secondary" />
 </template>
 
 <script lang="ts" setup>

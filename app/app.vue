@@ -96,11 +96,11 @@
         <div class="grid grid-cols-5 gap-2">
           <template v-for="(tile, index) in flattenGarden(state.players[viewingPlayer!]!.garden)">
             <TileCard v-if="tile" :tile="tile" :canBeGrown="canBeGrown(tile)" :compact="true"
-              @click="openInfoModal(tile, index)"
+              @click="tile.type !== 'pest' ? openModal('info', { tile, index }) : undefined"
               :class="viewingPlayer === playerId ? 'cursor-pointer hover:scale-105 transition-transform' : 'cursor-default'" />
-            <button v-else-if="viewingPlayer === playerId && turnState === 'PLACE' || turnState === 'PEST'"
+            <button v-else-if="viewingPlayer === playerId && (turnState === 'PLACE' || turnState === 'PEST')"
               class="aspect-square flex items-center justify-center bg-white/10 hover:bg-white/20 border-2 border-dashed border-white/30 rounded-xl transition-all active:scale-95"
-              @click="openConfirmationModal(index % 5, Math.floor(index / 5))">
+              @click="openModal('place', { x: index % 5, y: Math.floor(index / 5) })">
               <span class="text-2xl text-white/60">+</span>
             </button>
             <div v-else
@@ -115,17 +115,17 @@
 
     </div>
 
-    <!-- Modals -->
-    <!-- Plant Info Modal -->
-    <dialog ref="confirmationModal" class="modal modal-bottom">
+    <dialog ref="modal" class="modal modal-bottom">
       <div class="modal-box bg-slate-900 border border-white/20">
-        <div v-if="modalTile?.type === 'plant'" class="space-y-4">
+
+        <!-- Plant Info Mode -->
+        <div v-if="modalMode === 'info' && modalData.tile?.type === 'plant'" class="space-y-4">
           <div class="flex items-start justify-between">
             <div>
-              <h3 class="text-xl font-bold text-white">{{ modalTile?.data.name }}</h3>
+              <h3 class="text-xl font-bold text-white">{{ modalData.tile?.data.name }}</h3>
               <div class="flex items-center gap-2 mt-1">
-                <span class="text-amber-400">⭐️{{ modalTile?.data.basePoints }}</span>
-                <span v-if="modalTile.grown" class="px-2 py-1 bg-green-500/20 text-green-400 text-xs rounded-full">
+                <span class="text-amber-400">⭐️{{ modalData.tile?.data.basePoints }}</span>
+                <span v-if="modalData.tile.grown" class="px-2 py-1 bg-green-500/20 text-green-400 text-xs rounded-full">
                   Grown
                 </span>
               </div>
@@ -133,19 +133,19 @@
           </div>
 
           <div class="flex gap-4">
-            <img :src="`/${modalTile?.data.name}.jpeg`" class="w-20 h-20 rounded-xl object-cover bg-white/10" />
+            <img :src="`/${modalData.tile?.data.name}.jpeg`" class="w-20 h-20 rounded-xl object-cover bg-white/10" />
             <div class="flex-1 space-y-3">
-              <p class="text-gray-300 text-sm">{{ modalTile?.data.effect }}</p>
+              <p class="text-gray-300 text-sm">{{ modalData.tile?.data.effect }}</p>
 
               <div class="flex gap-3 text-sm">
                 <span class="flex items-center gap-1 text-blue-400">
-                  💧 {{ modalTile?.data.growthCost.water ?? 0 }}
+                  💧 {{ modalData.tile?.data.growthCost.water ?? 0 }}
                 </span>
                 <span class="flex items-center gap-1 text-yellow-400">
-                  ☀️ {{ modalTile?.data.growthCost.light ?? 0 }}
+                  ☀️ {{ modalData.tile?.data.growthCost.light ?? 0 }}
                 </span>
                 <span class="flex items-center gap-1 text-amber-400">
-                  🌾 {{ modalTile?.data.growthCost.compost ?? 0 }}
+                  🌾 {{ modalData.tile?.data.growthCost.compost ?? 0 }}
                 </span>
               </div>
             </div>
@@ -154,13 +154,12 @@
           <div v-if="viewingPlayer === playerId" class="flex gap-3">
             <button
               class="flex-1 py-3 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-white font-medium rounded-lg transition-colors"
-              :disabled="!canBeGrown(modalTile)"
-              @click="growTile(modalTileIndex! % 5, Math.floor(modalTileIndex! / 5))">
+              :disabled="!canBeGrown(modalData.tile)" @click="handleGrowTile()">
               🌱 Grow Plant
             </button>
             <button v-if="turnState === 'PEST'"
               class="flex-1 py-3 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-colors"
-              @click="placePestTile(modalTileIndex! % 5, Math.floor(modalTileIndex! / 5))">
+              @click="handlePlacePest()">
               🐀 Place Pest
             </button>
           </div>
@@ -168,51 +167,46 @@
             Viewing {{ viewingPlayer }}'s plant
           </div>
         </div>
-      </div>
-      <form method="dialog" class="modal-backdrop">
-        <button>close</button>
-      </form>
-    </dialog>
 
-    <!-- Confirmation Modal -->
-    <dialog ref="infoModal" class="modal modal-bottom">
-      <div class="modal-box bg-slate-900 border border-white/20">
-        <h3 class="text-xl font-bold text-white mb-6">
-          {{ turnState === 'PLACE' ? '🌿 Place Plant' : '🐀 Place Pest' }}
-        </h3>
+        <!-- Place/Pest Confirmation Mode -->
+        <div v-if="modalMode === 'place'" class="space-y-4">
+          <h3 class="text-xl font-bold text-white mb-6">
+            {{ turnState === 'PLACE' ? '🌿 Place Plant' : '🐀 Place Pest' }}
+          </h3>
 
-        <div class="flex gap-3 flex-col">
+          <div class="flex gap-3 flex-col">
+            <div v-if="turnState === 'PLACE'" class="flex gap-2">
+              <img :src="`/${selectedTile?.data.name}.jpeg`" class="w-20 h-20 rounded-xl object-cover bg-white/10" />
+              <div class="flex-1 space-y-3">
+                <p class="text-gray-300 text-sm">{{ selectedTile?.data.effect }}</p>
 
-          <div v-if="turnState === 'PLACE'" class="flex gap-2">
-            <img :src="`/${selectedTile?.data.name}.jpeg`" class="w-20 h-20 rounded-xl object-cover bg-white/10" />
-            <div class="flex-1 space-y-3">
-              <p class="text-gray-300 text-sm">{{ selectedTile?.data.effect }}</p>
-
-              <div class="flex gap-3 text-sm">
-                <span class="flex items-center gap-1 text-blue-400">
-                  💧 {{ selectedTile?.data.growthCost.water ?? 0 }}
-                </span>
-                <span class="flex items-center gap-1 text-yellow-400">
-                  ☀️ {{ selectedTile?.data.growthCost.light ?? 0 }}
-                </span>
-                <span class="flex items-center gap-1 text-amber-400">
-                  🌾 {{ selectedTile?.data.growthCost.compost ?? 0 }}
-                </span>
+                <div class="flex gap-3 text-sm">
+                  <span class="flex items-center gap-1 text-blue-400">
+                    💧 {{ selectedTile?.data.growthCost.water ?? 0 }}
+                  </span>
+                  <span class="flex items-center gap-1 text-yellow-400">
+                    ☀️ {{ selectedTile?.data.growthCost.light ?? 0 }}
+                  </span>
+                  <span class="flex items-center gap-1 text-amber-400">
+                    🌾 {{ selectedTile?.data.growthCost.compost ?? 0 }}
+                  </span>
+                </div>
               </div>
             </div>
+
+            <button v-if="state.currentPlayer === playerId"
+              class="flex-1 py-3 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors"
+              @click="handleConfirm()">
+              Confirm
+            </button>
+            <button
+              class="flex-1 py-3 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-lg transition-colors"
+              @click="closeModal()">
+              Cancel
+            </button>
           </div>
-
-
-          <button
-            class="flex-1 py-3 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors"
-            @click="confirmAction()">
-            Confirm
-          </button>
-          <button class="flex-1 py-3 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-lg transition-colors"
-            @click="closeInfoModal()">
-            Cancel
-          </button>
         </div>
+
       </div>
       <form method="dialog" class="modal-backdrop">
         <button>close</button>
@@ -244,13 +238,14 @@ import { type MultiplayerGameState, type Tile, type Garden, sendCommand, type Pl
 
 const state = ref<MultiplayerGameState | null>(null);
 const selectedTile = ref<PlantTile | null>(null);
-const modalTile = ref<Tile | null>(null);
-const modalTileIndex = ref<number | null>(null);
 const drawerOpen = ref(false);
-const confirmationModal = ref<HTMLDialogElement | null>(null);
-const infoModal = ref<HTMLDialogElement | null>(null);
+const modal = ref<HTMLDialogElement | null>(null);
 const playerId = useRoute().query.playerId as PlayerId ?? "louis"
 const viewingPlayer = ref<PlayerId | null>(null);
+
+// Unified modal state
+const modalMode = ref<'info' | 'place' | null>(null);
+const modalData = ref<any>({});
 
 onMounted(async () => {
   const res = await fetch("/api/state");
@@ -298,32 +293,51 @@ function flattenGarden(garden: Garden): (Tile | null)[] {
   return garden.flat();
 }
 
-let confirmAction = () => { }
+// Unified modal functions
+function openModal(mode: 'info' | 'place', data: any) {
+  modalMode.value = mode;
+  modalData.value = data;
+  modal.value?.showModal();
+}
 
-function openConfirmationModal(x: number, y: number) {
+function closeModal() {
+  modal.value?.close();
+  modalMode.value = null;
+  modalData.value = {};
+}
+
+// Modal action handlers
+async function handleGrowTile() {
+  const x = modalData.value.index % 5;
+  const y = Math.floor(modalData.value.index / 5);
+
+  await sendCommand("growPlant", { playerId, x, y }).catch((err) => {
+    console.error("Error sending command:", err);
+  });
+
+  await updateUI();
+  closeModal();
+}
+
+async function handlePlacePest() {
+  const x = modalData.value.index % 5;
+  const y = Math.floor(modalData.value.index / 5);
+
+  await sendCommand("placePestTile", { playerId, x, y, tile: { type: 'pest' } }).catch((err) => {
+    console.error("Error sending command:", err);
+  });
+
+  await updateUI();
+  closeModal();
+}
+
+async function handleConfirm() {
   if (turnState.value === 'PLACE') {
-    confirmAction = () => {
-      placeTile(x, y)
-      closeInfoModal()
-    }
+    await placeTile(modalData.value.x, modalData.value.y);
+  } else if (turnState.value === 'PEST') {
+    await placePestTile(modalData.value.x, modalData.value.y);
   }
-  else if (turnState.value === 'PEST') {
-    confirmAction = () => {
-      placePestTile(x, y)
-      closeInfoModal()
-    }
-  }
-  infoModal.value?.showModal();
-}
-
-function closeInfoModal() {
-  infoModal.value?.close();
-}
-
-function openInfoModal(plant: Tile, index: number) {
-  modalTile.value = plant;
-  modalTileIndex.value = index;
-  confirmationModal.value?.showModal();
+  closeModal();
 }
 
 async function updateUI() {
@@ -342,19 +356,8 @@ async function placePestTile(x: number, y: number) {
     await sendCommand("placePestTile", { playerId, x, y, tile: { type: 'pest' } }).catch((err) => {
       console.error("Error sending command:", err);
     });
-    confirmationModal.value?.close();
     updateUI();
   }
-}
-
-async function growTile(x: number, y: number) {
-  if (!selectedTile.value) return;
-  if (!state.value) return;
-  await sendCommand("growPlant", { playerId, x, y }).catch((err) => {
-    console.error("Error sending command:", err);
-  })
-  updateUI();
-  confirmationModal.value?.close();
 }
 
 async function placeTile(x: number, y: number) {
@@ -367,8 +370,7 @@ async function placeTile(x: number, y: number) {
       console.error("Error sending command:", err);
     })
     updateUI();
-  }
-  else if (turnState.value === 'PEST') {
+  } else if (turnState.value === 'PEST') {
     await sendCommand("placePestTile", { playerId, x, y, tile: { type: 'pest' } }).catch((err) => {
       console.error("Error sending command:", err);
     });
