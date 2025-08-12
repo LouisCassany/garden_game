@@ -89,7 +89,7 @@
             <TileCard v-if="tile" :tile="tile" :canBeGrown="canBeGrown(tile)" :compact="true"
               @click="openInfoModal(tile, index)"
               :class="viewingPlayer === playerId ? 'cursor-pointer hover:scale-105 transition-transform' : 'cursor-default'" />
-            <button v-else-if="viewingPlayer === playerId"
+            <button v-else-if="viewingPlayer === playerId && turnState === 'PLACE' || turnState === 'PEST'"
               class="aspect-square flex items-center justify-center bg-white/10 hover:bg-white/20 border-2 border-dashed border-white/30 rounded-xl transition-all active:scale-95"
               @click="openConfirmationModal(index % 5, Math.floor(index / 5))">
               <span class="text-2xl text-white/60">+</span>
@@ -171,6 +171,7 @@
         <h3 class="text-xl font-bold text-white mb-6">
           {{ turnState === 'PLACE' ? '🌿 Place Plant' : '🐀 Place Pest' }}
         </h3>
+
         <div class="flex gap-3 flex-col">
 
           <div v-if="turnState === 'PLACE'" class="flex gap-2">

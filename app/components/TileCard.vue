@@ -1,8 +1,10 @@
 <template>
     <div v-if="tile.type === 'plant'"
-        class="shadow-md rounded-md flex flex-col justify-between relative overflow-hidden" :class="{
-            'border-3 border-green-400': tile.grown,
-            'border-3 border-yellow-400 cursor-pointer': !tile.grown && canBeGrown,
+        class="shadow-md rounded-md flex flex-col justify-between relative overflow-hidden transition-all duration-300"
+        :class="{
+            'grown-tile': tile.grown,
+            'growable-tile': !tile.grown && canBeGrown,
+            'ungrowable-tile': !tile.grown && !canBeGrown,
             'size-36': !compact,
             'aspect-square': compact,
         }">
@@ -33,7 +35,8 @@
         </div>
     </div>
 
-    <img src="/pest.jpeg" class="size-full rounded-md border border-secondary" v-else-if="tile.type === 'pest'" />
+    <img src="/pest.jpeg" class="pest-tile size-full rounded-md border border-secondary"
+        v-else-if="tile.type === 'pest'" />
 </template>
 
 <script lang="ts" setup>
@@ -53,3 +56,70 @@ function canGrow(tile: PlantTile) {
     );
 }
 </script>
+
+<style scoped>
+/* Grown tile - vibrant green animated border */
+.grown-tile {
+    border: 3px solid #22c55e;
+}
+
+/* Growable tile - pulsing yellow border */
+.growable-tile {
+    border: 3px solid #eab308;
+    cursor: pointer;
+    animation: growable-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes growable-pulse {
+
+    0%,
+    100% {
+        border-color: #eab308;
+        box-shadow: 0 0 0 0 rgba(234, 179, 8, 0.5);
+    }
+
+    50% {
+        border-color: #ca8a04;
+        box-shadow: 0 0 0 6px rgba(234, 179, 8, 0);
+    }
+}
+
+.growable-tile:hover {
+    border-color: #f59e0b;
+    transform: translateY(-1px);
+}
+
+/* Ungrowable tile - subtle static border */
+.ungrowable-tile {
+    border: 2px solid #6b7280;
+    opacity: 0.8;
+}
+
+/* Pest tile - aggressive red warning animation */
+.pest-tile {
+    border: 3px solid #dc2626 !important;
+    animation: pest-warning 1.2s ease-in-out infinite;
+}
+
+@keyframes pest-warning {
+
+    0%,
+    100% {
+        border-color: #dc2626;
+        box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.7);
+    }
+
+    50% {
+        border-color: #b91c1c;
+        box-shadow: 0 0 0 3px rgba(220, 38, 38, 0);
+    }
+}
+
+/* Smooth transitions */
+.grown-tile,
+.growable-tile,
+.ungrowable-tile,
+.pest-tile {
+    transition: all 0.3s ease;
+}
+</style>

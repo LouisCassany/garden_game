@@ -296,7 +296,7 @@ export default class MultiplayerGardenGame {
                 resources: { water: 1, light: 1, compost: 1 },
                 infestation: 0,
                 turnState: 'PLACE',
-                pestToPlace: 0,
+                pestToPlace: 1,
             };
         }
 
