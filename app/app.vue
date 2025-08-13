@@ -4,10 +4,6 @@
     <div class="sticky top-0 z-50 bg-black/20 backdrop-blur-xl border-b border-white/10">
       <div class="flex items-center justify-between p-4">
 
-        <!-- <button @click="toggleDrawer" class="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors">
-          <MenuButton class="size-6 text-white" />
-        </button> -->
-
         <!-- Turn Status -->
         <div class="flex-1 mx-4">
           <div v-if="state?.winner" class="text-center">
@@ -62,24 +58,24 @@
     <!-- Main Content -->
     <div class="p-4 space-y-2">
       <!-- Draft Zone -->
-      <div v-if="state?.draftZone?.length" class="space-y-3">
+      <div v-if="state.draftZone.length" class="space-y-3">
         <h2 class="text-white font-semibold text-lg flex items-center gap-2">
           <span class="w-2 h-2 bg-emerald-400 rounded-full"></span>
           Draft Zone
         </h2>
         <div class="flex overflow-x-auto pb-2 -mx-4 p-2">
-          <label v-for="tile in state.draftZone" :key="tile.id"
+          <label v-for="card in state.draftZone" :key="card.id"
             class="flex flex-col items-center cursor-pointer gap-2 flex-shrink-0 p-2 rounded-lg transition-all"
-            :class="{ 'ring-2 ring-emerald-400 bg-emerald-400/10': selectedTile?.id === tile.id }">
-            <input type="radio" name="draft" class="radio radio-secondary" v-model="selectedTile" :value="tile"
+            :class="{ 'ring-2 ring-emerald-400 bg-emerald-400/10': draftTile?.id === card.id }">
+            <input type="radio" name="draft" class="radio radio-secondary" v-model="draftTile" :value="card"
               :disabled="turnState !== 'PLACE' || state.currentPlayer !== playerId"></input>
-            <TileCard :tile="tile" :canBeGrown="false" />
+            <DraftCard :card="card" />
           </label>
         </div>
       </div>
 
       <!-- Garden -->
-      <div class="space-y-3">
+      <!-- <div class="space-y-3">
         <div class="flex items-center justify-between">
           <h2 class="text-white font-semibold text-lg flex items-center gap-2">
             <span class="w-2 h-2 bg-green-400 rounded-full"></span>
@@ -90,7 +86,6 @@
                 {{ id === playerId ? 'Your Garden' : `${id}'s Garden` }}
               </option>
             </select>
-            <!-- {{ viewingPlayer === playerId ? 'Your Garden' : `${viewingPlayer}'s Garden` }} -->
           </h2>
         </div>
         <div class="grid grid-cols-5 gap-2">
@@ -108,8 +103,8 @@
               <span class="text-xl text-white/30">·</span>
             </div>
           </template>
-        </div>
-      </div>
+</div>
+</div> -->
 
       <!-- Game Log -->
       <div class="space-y-2 h-1/4 overflow-auto">
@@ -128,103 +123,100 @@
 
     </div>
 
-    <dialog ref="modal" class="modal modal-bottom">
+    <!-- <dialog ref="modal" class="modal modal-bottom">
       <div class="modal-box bg-slate-900 border border-white/20">
 
-        <!-- Plant Info Mode -->
-        <div v-if="modalMode === 'info' && modalData.tile?.type === 'plant'" class="space-y-4">
-          <div class="flex items-start justify-between">
-            <div>
-              <h3 class="text-xl font-bold text-white">{{ modalData.tile?.data.name }}</h3>
-              <div class="flex items-center gap-2 mt-1">
-                <span class="text-amber-400">⭐️{{ modalData.tile?.data.basePoints }}</span>
-                <span v-if="modalData.tile.grown" class="px-2 py-1 bg-green-500/20 text-green-400 text-xs rounded-full">
-                  Grown
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <div class="flex gap-4">
-            <img :src="`/${modalData.tile?.data.name}.jpeg`" class="w-20 h-20 rounded-xl object-cover bg-white/10" />
-            <div class="flex-1 space-y-3">
-              <p class="text-gray-300 text-sm">{{ modalData.tile?.data.effect }}</p>
-
-              <div class="flex gap-3 text-sm">
-                <span class="flex items-center gap-1 text-blue-400">
-                  💧 {{ modalData.tile?.data.growthCost.water ?? 0 }}
-                </span>
-                <span class="flex items-center gap-1 text-yellow-400">
-                  ☀️ {{ modalData.tile?.data.growthCost.light ?? 0 }}
-                </span>
-                <span class="flex items-center gap-1 text-amber-400">
-                  🌾 {{ modalData.tile?.data.growthCost.compost ?? 0 }}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <div v-if="viewingPlayer === playerId" class="flex gap-3">
-            <button
-              class="flex-1 py-3 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-white font-medium rounded-lg transition-colors"
-              :disabled="!canBeGrown(modalData.tile)" @click="handleGrowTile()">
-              🌱 Grow Plant
-            </button>
-            <button v-if="turnState === 'PEST'"
-              class="flex-1 py-3 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-colors"
-              @click="handlePlacePest()">
-              🐀 Place Pest
-            </button>
-          </div>
-          <div v-else class="text-center text-gray-400 text-sm py-2">
-            Viewing {{ viewingPlayer }}'s plant
+    <div v-if="modalMode === 'info' && modalData.tile?.type === 'plant'" class="space-y-4">
+      <div class="flex items-start justify-between">
+        <div>
+          <h3 class="text-xl font-bold text-white">{{ modalData.tile?.data.name }}</h3>
+          <div class="flex items-center gap-2 mt-1">
+            <span class="text-amber-400">⭐️{{ modalData.tile?.data.basePoints }}</span>
+            <span v-if="modalData.tile.grown" class="px-2 py-1 bg-green-500/20 text-green-400 text-xs rounded-full">
+              Grown
+            </span>
           </div>
         </div>
-
-        <!-- Place/Pest Confirmation Mode -->
-        <div v-if="modalMode === 'place'" class="space-y-4">
-          <h3 class="text-xl font-bold text-white mb-6">
-            {{ turnState === 'PLACE' ? '🌿 Place Plant' : '🐀 Place Pest' }}
-          </h3>
-
-          <div class="flex gap-3 flex-col">
-            <div v-if="turnState === 'PLACE'" class="flex gap-2">
-              <img :src="`/${selectedTile?.data.name}.jpeg`" class="size-25 rounded-xl object-cover bg-white/10" />
-              <div class="flex-1 space-y-3">
-                <h4 class="font-bold text-lg">{{ selectedTile?.data.name }}</h4>
-                <p class="text-gray-300 text-sm">{{ selectedTile?.data.effect }}</p>
-                <div class="flex gap-3 text-sm">
-                  <span class="flex items-center gap-1 text-blue-400">
-                    💧 {{ selectedTile?.data.growthCost.water ?? 0 }}
-                  </span>
-                  <span class="flex items-center gap-1 text-yellow-400">
-                    ☀️ {{ selectedTile?.data.growthCost.light ?? 0 }}
-                  </span>
-                  <span class="flex items-center gap-1 text-amber-400">
-                    🌾 {{ selectedTile?.data.growthCost.compost ?? 0 }}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <button v-if="state.currentPlayer === playerId"
-              class="flex-1 py-3 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors"
-              @click="handleConfirm()">
-              Confirm
-            </button>
-            <button
-              class="flex-1 py-3 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-lg transition-colors"
-              @click="closeModal()">
-              Cancel
-            </button>
-          </div>
-        </div>
-
       </div>
-      <form method="dialog" class="modal-backdrop">
-        <button>close</button>
-      </form>
-    </dialog>
+
+      <div class="flex gap-4">
+        <img :src="`/${modalData.tile?.data.name}.jpeg`" class="w-20 h-20 rounded-xl object-cover bg-white/10" />
+        <div class="flex-1 space-y-3">
+          <p class="text-gray-300 text-sm">{{ modalData.tile?.data.effect }}</p>
+
+          <div class="flex gap-3 text-sm">
+            <span class="flex items-center gap-1 text-blue-400">
+              💧 {{ modalData.tile?.data.growthCost.water ?? 0 }}
+            </span>
+            <span class="flex items-center gap-1 text-yellow-400">
+              ☀️ {{ modalData.tile?.data.growthCost.light ?? 0 }}
+            </span>
+            <span class="flex items-center gap-1 text-amber-400">
+              🌾 {{ modalData.tile?.data.growthCost.compost ?? 0 }}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div v-if="viewingPlayer === playerId" class="flex gap-3">
+        <button
+          class="flex-1 py-3 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-white font-medium rounded-lg transition-colors"
+          :disabled="!canBeGrown(modalData.tile)" @click="handleGrowTile()">
+          🌱 Grow Plant
+        </button>
+        <button v-if="turnState === 'PEST'"
+          class="flex-1 py-3 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-colors"
+          @click="handlePlacePest()">
+          🐀 Place Pest
+        </button>
+      </div>
+      <div v-else class="text-center text-gray-400 text-sm py-2">
+        Viewing {{ viewingPlayer }}'s plant
+      </div>
+    </div>
+
+    <div v-if="modalMode === 'place'" class="space-y-4">
+      <h3 class="text-xl font-bold text-white mb-6">
+        {{ turnState === 'PLACE' ? '🌿 Place Plant' : '🐀 Place Pest' }}
+      </h3>
+
+      <div class="flex gap-3 flex-col">
+        <div v-if="turnState === 'PLACE'" class="flex gap-2">
+          <img :src="`/${selectedTile?.data.name}.jpeg`" class="size-25 rounded-xl object-cover bg-white/10" />
+          <div class="flex-1 space-y-3">
+            <h4 class="font-bold text-lg">{{ selectedTile?.data.name }}</h4>
+            <p class="text-gray-300 text-sm">{{ selectedTile?.data.effect }}</p>
+            <div class="flex gap-3 text-sm">
+              <span class="flex items-center gap-1 text-blue-400">
+                💧 {{ selectedTile?.data.growthCost.water ?? 0 }}
+              </span>
+              <span class="flex items-center gap-1 text-yellow-400">
+                ☀️ {{ selectedTile?.data.growthCost.light ?? 0 }}
+              </span>
+              <span class="flex items-center gap-1 text-amber-400">
+                🌾 {{ selectedTile?.data.growthCost.compost ?? 0 }}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <button v-if="state.currentPlayer === playerId"
+          class="flex-1 py-3 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors"
+          @click="handleConfirm()">
+          Confirm
+        </button>
+        <button class="flex-1 py-3 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-lg transition-colors"
+          @click="closeModal()">
+          Cancel
+        </button>
+      </div>
+    </div>
+
+  </div>
+  <form method="dialog" class="modal-backdrop">
+    <button>close</button>
+  </form>
+  </dialog> -->
 
     <!-- Side Drawer -->
     <!-- <div v-if="drawerOpen" class="fixed inset-0 z-50">
@@ -247,39 +239,38 @@
 
 <script lang="ts" setup>
 import { ref, computed } from "vue";
-import { type MultiplayerGameState, type Tile, type Garden, sendCommand, type PlantTile, type PlayerId } from "./engine";
+import { type MultiplayerGameState, type Tile, type Garden, sendCommand, type PlantTile, type PlayerId, type DraftCard } from "./engine";
 
 const state = ref<MultiplayerGameState | null>(null);
-const selectedTile = ref<PlantTile | null>(null);
+const draftTile = ref<DraftCard | null>(null);
 const drawerOpen = ref(false);
-const modal = ref<HTMLDialogElement | null>(null);
 const playerId = useRoute().query.playerId as PlayerId ?? "louis"
-const viewingPlayer = ref<PlayerId | null>(null);
+// const viewingPlayer = ref<PlayerId | null>(null);
 
 // Unified modal state
-const modalMode = ref<'info' | 'place' | null>(null);
-const modalData = ref<any>({});
+// const modalMode = ref<'info' | 'place' | null>(null);
+// const modalData = ref<any>({});
 
 onMounted(async () => {
   const res = await fetch("/api/state");
   if (res.ok) {
     const body = await res.json()
     state.value = body.game.state as MultiplayerGameState;
-    selectedTile.value = state.value.draftZone[0] as PlantTile;
+    draftTile.value = state.value.draftZone[0] as DraftCard;
   }
 
-  viewingPlayer.value = playerId;
+  // viewingPlayer.value = playerId;
 
-  setInterval(async () => {
-    if (state.value?.currentPlayer === playerId) return;
+  // setInterval(async () => {
+  //   if (state.value?.currentPlayer === playerId) return;
 
-    const res = await fetch("/api/state");
-    if (res.ok) {
-      const body = await res.json()
-      state.value = body.game.state as MultiplayerGameState;
-      selectedTile.value = state.value.draftZone[0] as PlantTile;
-    }
-  }, 1000);
+  //   const res = await fetch("/api/state");
+  //   if (res.ok) {
+  //     const body = await res.json()
+  //     state.value = body.game.state as MultiplayerGameState;
+  //     selectedTile.value = state.value.draftZone[0] as PlantTile;
+  //   }
+  // }, 1000);
 });
 
 function toggleDrawer() {
@@ -306,52 +297,39 @@ function flattenGarden(garden: Garden): (Tile | null)[] {
   return garden.flat();
 }
 
-// Unified modal functions
-function openModal(mode: 'info' | 'place', data: any) {
-  modalMode.value = mode;
-  modalData.value = data;
-  modal.value?.showModal();
-}
-
-function closeModal() {
-  modal.value?.close();
-  modalMode.value = null;
-  modalData.value = {};
-}
-
 // Modal action handlers
-async function handleGrowTile() {
-  const x = modalData.value.index % 5;
-  const y = Math.floor(modalData.value.index / 5);
+// async function handleGrowTile() {
+//   const x = modalData.value.index % 5;
+//   const y = Math.floor(modalData.value.index / 5);
 
-  await sendCommand("growPlant", { playerId, x, y }).catch((err) => {
-    console.error("Error sending command:", err);
-  });
+//   await sendCommand("growPlant", { playerId, x, y }).catch((err) => {
+//     console.error("Error sending command:", err);
+//   });
 
-  await updateUI();
-  closeModal();
-}
+//   await updateUI();
+//   closeModal();
+// }
 
-async function handlePlacePest() {
-  const x = modalData.value.index % 5;
-  const y = Math.floor(modalData.value.index / 5);
+// async function handlePlacePest() {
+//   const x = modalData.value.index % 5;
+//   const y = Math.floor(modalData.value.index / 5);
 
-  await sendCommand("placePestTile", { playerId, x, y, tile: { type: 'pest' } }).catch((err) => {
-    console.error("Error sending command:", err);
-  });
+//   await sendCommand("placePestTile", { playerId, x, y, tile: { type: 'pest' } }).catch((err) => {
+//     console.error("Error sending command:", err);
+//   });
 
-  await updateUI();
-  closeModal();
-}
+//   await updateUI();
+//   closeModal();
+// }
 
-async function handleConfirm() {
-  if (turnState.value === 'PLACE') {
-    await placeTile(modalData.value.x, modalData.value.y);
-  } else if (turnState.value === 'PEST') {
-    await placePestTile(modalData.value.x, modalData.value.y);
-  }
-  closeModal();
-}
+// async function handleConfirm() {
+//   if (turnState.value === 'PLACE') {
+//     await placeTile(modalData.value.x, modalData.value.y);
+//   } else if (turnState.value === 'PEST') {
+//     await placePestTile(modalData.value.x, modalData.value.y);
+//   }
+//   closeModal();
+// }
 
 async function updateUI() {
   const req = await fetch("/api/state");
@@ -361,35 +339,35 @@ async function updateUI() {
   }
 }
 
-async function placePestTile(x: number, y: number) {
-  if (!selectedTile.value) return;
-  if (!state.value) return;
+// async function placePestTile(x: number, y: number) {
+//   if (!selectedTile.value) return;
+//   if (!state.value) return;
 
-  if (turnState.value === 'PEST') {
-    await sendCommand("placePestTile", { playerId, x, y, tile: { type: 'pest' } }).catch((err) => {
-      console.error("Error sending command:", err);
-    });
-    updateUI();
-  }
-}
+//   if (turnState.value === 'PEST') {
+//     await sendCommand("placePestTile", { playerId, x, y, tile: { type: 'pest' } }).catch((err) => {
+//       console.error("Error sending command:", err);
+//     });
+//     updateUI();
+//   }
+// }
 
-async function placeTile(x: number, y: number) {
-  if (!selectedTile.value) return;
-  if (!state.value) return;
+// async function placeTile(x: number, y: number) {
+//   if (!selectedTile.value) return;
+//   if (!state.value) return;
 
-  if (turnState.value === 'PLACE') {
-    const tileIndex = state.value.draftZone.indexOf(selectedTile.value)
-    await sendCommand("placeTile", { playerId, tileIndex, x, y }).catch((err) => {
-      console.error("Error sending command:", err);
-    })
-    updateUI();
-  } else if (turnState.value === 'PEST') {
-    await sendCommand("placePestTile", { playerId, x, y, tile: { type: 'pest' } }).catch((err) => {
-      console.error("Error sending command:", err);
-    });
-    updateUI();
-  }
-}
+//   if (turnState.value === 'PLACE') {
+//     const tileIndex = state.value.draftZone.indexOf(selectedTile.value)
+//     await sendCommand("placeTile", { playerId, tileIndex, x, y }).catch((err) => {
+//       console.error("Error sending command:", err);
+//     })
+//     updateUI();
+//   } else if (turnState.value === 'PEST') {
+//     await sendCommand("placePestTile", { playerId, x, y, tile: { type: 'pest' } }).catch((err) => {
+//       console.error("Error sending command:", err);
+//     });
+//     updateUI();
+//   }
+// }
 
 async function endturn() {
   await sendCommand("nextTurn", { playerId }).catch((err) => {
@@ -398,24 +376,24 @@ async function endturn() {
   updateUI()
 }
 
-function canBeGrown(tile: Tile): boolean {
-  if (!state.value) return false;
-  if (turnState.value !== 'GROW') return false;
-  if (!tile || tile.type !== 'plant') return false;
+// function canBeGrown(tile: Tile): boolean {
+//   if (!state.value) return false;
+//   if (turnState.value !== 'GROW') return false;
+//   if (!tile || tile.type !== 'plant') return false;
 
-  const resourcesNeeded = tile.data.growthCost;
-  if (!resourcesNeeded || Object.keys(resourcesNeeded).length === 0) return false;
-  if (tile.grown) return false;
+//   const resourcesNeeded = tile.data.growthCost;
+//   if (!resourcesNeeded || Object.keys(resourcesNeeded).length === 0) return false;
+//   if (tile.grown) return false;
 
-  //@ts-ignore
-  const playerResources = state.value.players[playerId].resources;
+//   //@ts-ignore
+//   const playerResources = state.value.players[playerId].resources;
 
-  if (resourcesNeeded.water !== undefined && playerResources.water < resourcesNeeded.water) return false;
-  if (resourcesNeeded.light !== undefined && playerResources.light < resourcesNeeded.light) return false;
-  if (resourcesNeeded.compost !== undefined && playerResources.compost < resourcesNeeded.compost) return false;
+//   if (resourcesNeeded.water !== undefined && playerResources.water < resourcesNeeded.water) return false;
+//   if (resourcesNeeded.light !== undefined && playerResources.light < resourcesNeeded.light) return false;
+//   if (resourcesNeeded.compost !== undefined && playerResources.compost < resourcesNeeded.compost) return false;
 
-  return true;
-}
+//   return true;
+// }
 
 async function skipGrowPhase() {
   await sendCommand("skipGrowPhase", { playerId }).catch((err) => {
