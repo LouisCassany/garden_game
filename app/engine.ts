@@ -1,6 +1,7 @@
 type Resource = 'water' | 'light' | 'compost';
 type PlantName = 'Lavender' | 'Sunflower' | 'Mushroom' | 'Tree' | 'Daisy' | 'Cactus' | 'Bamboo' | 'Vine' | 'Fern' | 'LemonTree' | 'WaterLily' | 'Honeysuckle' | 'Pumpkin' | 'BeanPlant';
-// type BuildingName = 'Pond' | 'Compost'
+type PestName = 'Aphid' | 'Locust';
+type ActionCardName = 'Fertilizer' | 'Pesticide' | 'Watering' | 'Pruning' | 'Composting' | 'WeatherBoost';
 export type TurnState = 'PLACE' | 'GROW' | 'PEST' | 'END' | 'DONE';
 
 export type PlayerId = string;
@@ -17,8 +18,8 @@ export interface PlayerState {
 
 export interface MultiplayerGameState {
     players: Record<PlayerId, PlayerState>;
-    deck: Tile[];
-    draftZone: PlantTile[];
+    deck: DraftCard[];
+    draftZone: DraftCard[];
     currentTurn: number;
     currentPlayer: PlayerId;
     log: string[];
@@ -30,17 +31,25 @@ interface PlantData {
     growthCost: Partial<Record<Resource, number>>;
     basePoints: number;
     growEffect: (neighbors: (Tile | null)[], playerState: PlayerState) => void;
-    effect: string
+    effect: string;
     description: string;
 }
 
-// interface BuildingData {
-//     name: BuildingName;
-//     basePoints: number;
-//     placeEffect: (playerState: PlayerState) => void;
-//     effect: string;
-//     description: string;
-// }
+interface PestData {
+    name: PestName;
+    damage: number; // Points lost when placed on a plant
+    spreadEffect?: (neighbors: (Tile | null)[], targetPlayer: PlayerState) => void;
+    effect: string;
+    description: string;
+}
+
+interface ActionCardData {
+    name: ActionCardName;
+    resourceCost: Partial<Record<Resource, number>>;
+    immediateEffect: (playerState: PlayerState, gameState: MultiplayerGameState) => void;
+    effect: string;
+    description: string;
+}
 
 export interface PlantTile {
     id: string;
@@ -49,16 +58,19 @@ export interface PlantTile {
     grown: boolean;
 }
 
-interface PestTile {
+export interface PestTile {
+    id: string;
     type: 'pest';
+    data: PestData;
 }
 
-// interface BuildingTile {
-//     id: string;
-//     type: 'building';
-//     data: BuildingData;
-// }
+export interface ActionCard {
+    id: string;
+    type: 'action';
+    data: ActionCardData;
+}
 
+export type DraftCard = PlantTile | PestTile | ActionCard;
 export type Tile = PlantTile | PestTile;
 
 export type Garden = (Tile | null)[][]; // 5x5 grid
@@ -76,9 +88,13 @@ interface GameCommands {
         args: Parameters<MultiplayerGardenGame["growPlant"]>;
         return: ReturnType<MultiplayerGardenGame["growPlant"]>;
     };
-    placeTile: {
-        args: Parameters<MultiplayerGardenGame["placeTile"]>;
-        return: ReturnType<MultiplayerGardenGame["placeTile"]>;
+    placePlantTile: {
+        args: Parameters<MultiplayerGardenGame["placePlantTile"]>;
+        return: ReturnType<MultiplayerGardenGame["placePlantTile"]>;
+    };
+    placePestOnPlayer: {
+        args: Parameters<MultiplayerGardenGame["placePestOnPlayer"]>;
+        return: ReturnType<MultiplayerGardenGame["placePestOnPlayer"]>;
     };
     nextTurn: {
         args: Parameters<MultiplayerGardenGame["nextTurn"]>;
@@ -87,10 +103,6 @@ interface GameCommands {
     skipGrowPhase: {
         args: Parameters<MultiplayerGardenGame["skipGrowPhase"]>;
         return: ReturnType<MultiplayerGardenGame["skipGrowPhase"]>;
-    };
-    placePestTile: {
-        args: Parameters<MultiplayerGardenGame["placePestTile"]>;
-        return: ReturnType<MultiplayerGardenGame["placePestTile"]>;
     };
 }
 
@@ -124,29 +136,108 @@ function generateId(): string {
     return Math.random().toString(36).slice(2, 10);
 }
 
-// const buildingLibrary: BuildingData[] = [
-//     {
-//         name: 'Compost',
-//         basePoints: 0,
-//         placeEffect: (playerState) => {
-//             playerState.resources.compost += 1;
-//         },
-//         description: 'Compost is a nutritious resource that can be used to grow plants.',
-//         effect: '+2 compost resource on PLACEMENT',
-//     },
-//     {
-//         name: 'Pond',
-//         basePoints: 0,
-//         placeEffect: (playerState) => {
-//             playerState.resources.water += 2;
-//         },
-//         description: 'Ponds are a source of water.',
-//         effect: '+2 water resource on PLACEMENT',
-//     },
-// ]
+const pestLibrary: PestData[] = [
+    {
+        name: 'Aphid',
+        damage: 1,
+        effect: 'Reduces plant points by 1',
+        description: 'Small but persistent pest that weakens plants.',
+        spreadEffect: (neighbors, targetPlayer) => {
+            // Aphids spread to adjacent plants, reducing their effectiveness
+            neighbors.forEach(neighbor => {
+                if (neighbor?.type === 'plant') {
+                    targetPlayer.score -= 1;
+                }
+            });
+        }
+    },
+    {
+        name: 'Locust',
+        damage: 3,
+        effect: 'Destroys plant completely',
+        description: 'Devastating pest that completely destroys plants.',
+    }
+];
 
-// Plant definitions
-// Balanced plant definitions
+const actionCardLibrary: ActionCardData[] = [
+    {
+        name: 'Fertilizer',
+        resourceCost: { compost: 1 },
+        effect: 'Grow a plant instantly without paying its growth cost',
+        description: 'Rich nutrients that accelerate plant growth.',
+        immediateEffect: (playerState, gameState) => {
+            // This would be handled in the UI - player selects which plant to grow
+            gameState.log.push(`${playerState.id} used Fertilizer`);
+        }
+    },
+    {
+        name: 'Pesticide',
+        resourceCost: { water: 1 },
+        effect: 'Remove all pest tiles from your garden',
+        description: 'Powerful chemicals that eliminate pests.',
+        immediateEffect: (playerState, gameState) => {
+            let pestsRemoved = 0;
+            for (let y = 0; y < playerState.garden.length; y++) {
+                for (let x = 0; x < playerState.garden[y]!.length; x++) {
+                    if (playerState.garden[y]![x]?.type === 'pest') {
+                        playerState.garden[y]![x] = null;
+                        pestsRemoved++;
+                    }
+                }
+            }
+            playerState.infestation = Math.max(0, playerState.infestation - pestsRemoved);
+            gameState.log.push(`${playerState.id} removed ${pestsRemoved} pests with Pesticide`);
+        }
+    },
+    {
+        name: 'Watering',
+        resourceCost: {},
+        effect: '+3 water resources',
+        description: 'Abundant water for your garden.',
+        immediateEffect: (playerState, gameState) => {
+            playerState.resources.water = Math.min(10, playerState.resources.water + 3);
+            gameState.log.push(`${playerState.id} gained 3 water from Watering`);
+        }
+    },
+    {
+        name: 'Pruning',
+        resourceCost: { light: 1 },
+        effect: '+2 points for each grown plant',
+        description: 'Careful maintenance improves plant health.',
+        immediateEffect: (playerState, gameState) => {
+            let grownPlants = 0;
+            playerState.garden.flat().forEach(tile => {
+                if (tile?.type === 'plant' && tile.grown) {
+                    grownPlants++;
+                }
+            });
+            playerState.score += grownPlants * 2;
+            gameState.log.push(`${playerState.id} gained ${grownPlants * 2} points from Pruning`);
+        }
+    },
+    {
+        name: 'Composting',
+        resourceCost: {},
+        effect: '+2 compost resources',
+        description: 'Natural fertilizer from organic waste.',
+        immediateEffect: (playerState, gameState) => {
+            playerState.resources.compost = Math.min(10, playerState.resources.compost + 2);
+            gameState.log.push(`${playerState.id} gained 2 compost from Composting`);
+        }
+    },
+    {
+        name: 'WeatherBoost',
+        resourceCost: {},
+        effect: '+2 light resources and +1 point',
+        description: 'Perfect weather conditions boost your garden.',
+        immediateEffect: (playerState, gameState) => {
+            playerState.resources.light = Math.min(10, playerState.resources.light + 2);
+            playerState.score += 1;
+            gameState.log.push(`${playerState.id} gained 2 light and 1 point from WeatherBoost`);
+        }
+    }
+];
+
 const plantLibrary: PlantData[] = [
     {
         name: 'Lavender',
@@ -368,25 +459,26 @@ export default class MultiplayerGardenGame {
             winner: null,
         };
 
-        // Fill the draft zone with cards ensuring pest are not drawn first
-        while (this.state.draftZone.length < settings.DRAFT_SIZE) {
-            const tile = this.drawTile();
-            if (tile) {
-                // If it's a pest, put it back in the deck, shuffle the deck and refill the draft zone
-                if (tile.type === 'pest') {
-                    this.state.deck.push(tile);
-                    this.shuffle(this.state.deck);
-                } else {
-                    this.state.draftZone.push(tile);
-                }
+        this.fillDraftZone();
+    }
+
+    private drawCard(): DraftCard | null {
+        return this.state.deck.pop() || null;
+    }
+
+
+    private fillDraftZone() {
+        while (this.state.draftZone.length < this.settings.DRAFT_SIZE && this.state.deck.length > 0) {
+            const card = this.drawCard();
+            if (card) {
+                this.state.draftZone.push(card);
             }
         }
-
     }
 
     // Init action
-    private generateDeck(playerCount: number): Tile[] {
-        const deck: Tile[] = [];
+    private generateDeck(playerCount: number): DraftCard[] {
+        const deck: DraftCard[] = [];
 
         // Scale cards with player count
         for (let i = 0; i < 3 * playerCount; i++) {
@@ -400,8 +492,24 @@ export default class MultiplayerGardenGame {
             }
         }
 
-        for (let i = 0; i < 34 * playerCount; i++) {
-            deck.push({ type: 'pest' });
+        for (let i = 0; i < 8 * playerCount; i++) {
+            for (const pestData of pestLibrary) {
+                deck.push({
+                    id: generateId(),
+                    type: 'pest',
+                    data: pestData,
+                });
+            }
+        }
+
+        for (let i = 0; i < 4 * playerCount; i++) {
+            for (const actionData of actionCardLibrary) {
+                deck.push({
+                    id: generateId(),
+                    type: 'action',
+                    data: actionData,
+                });
+            }
         }
 
         return this.shuffle(deck);
@@ -434,59 +542,101 @@ export default class MultiplayerGardenGame {
         this.nextTurnPhase(playerId);
     }
 
-    // Player action
-    placeTile({ playerId, tileIndex, x, y }: { playerId: PlayerId, tileIndex: number, x: number, y: number }) {
-        if (playerId !== this.state.currentPlayer) throw new Error('Not your turn');
-        const playerState = this.state.players[playerId];
-        if (!playerState || playerState.turnState === 'DONE') throw new Error('Player is done playing');
-        if (playerState.turnState !== 'PLACE') throw new Error('Cannot place tile this turn');
+    placePlantTile({ playerId, cardIndex, x, y }: { playerId: PlayerId, cardIndex: number, x: number, y: number }) {
+        const playerState = this.state.players[playerId]!;
+        const card = this.state.draftZone[cardIndex] as PlantTile;
 
-        // Rest of existing logic...
         if (!this.inBounds(x, y)) throw new Error('Out of bounds');
-        const tile = this.state.draftZone[tileIndex];
-        if (!tile) throw new Error('Invalid tile index');
-        const existing = playerState.garden[y]![x];
-        if (existing) throw new Error('Tile already exists at this position');
+        if (playerState.garden[y]![x]) throw new Error('Tile already exists at this position');
 
-        playerState.garden[y]![x] = tile;
-        this.state.draftZone.splice(tileIndex, 1);
+        playerState.garden[y]![x] = card;
+        playerState.score += card.data.basePoints;
 
-        playerState.score += tile.data.basePoints;
-
+        this.state.draftZone.splice(cardIndex, 1);
+        this.log(`${playerId} placed ${card.data.name} at (${x}, ${y})`);
         this.nextTurnPhase(playerId);
-        this.log(`${playerId} placed ${tile.data.name} at (${x}, ${y})`);
     }
 
-    placePestTile({ playerId, x, y, tile }: { playerId: PlayerId, x: number, y: number, tile: PestTile }) {
-        if (playerId !== this.state.currentPlayer) throw new Error('Not your turn');
-        const playerState = this.state.players[playerId];
-        if (!playerState || playerState.turnState === 'DONE') throw new Error('Player is done playing');
-        if (!playerState || playerState.turnState !== 'PEST') throw new Error('Cannot place pest this turn');
+    placePestOnPlayer({ playerId, cardIndex, x, y, targetPlayerId }: { playerId: PlayerId, cardIndex: number, x: number, y: number, targetPlayerId: PlayerId }) {
+        const targetPlayer = this.state.players[targetPlayerId];
+        if (!targetPlayer) throw new Error('Invalid target player');
+        if (targetPlayer === this.state.players[playerId]) throw new Error('Cannot place pest on self');
+
+        const card = this.state.draftZone[cardIndex] as PestTile;
 
         if (!this.inBounds(x, y)) throw new Error('Out of bounds');
 
-        const existing = playerState.garden[y]![x];
+        const existing = targetPlayer.garden[y]![x];
+        if (existing?.type === 'pest') throw new Error('Cannot place pest on another pest');
 
-        if (existing?.type === 'pest') {
-            this.log(`${playerId}: Cannot place pest on ${existing.type} at (${x}, ${y})`);
-            throw new Error('Cannot place pest on other pests');
+        // Apply pest damage
+        if (existing?.type === 'plant') {
+            targetPlayer.score -= card.data.damage;
+            this.log(`${playerId} placed ${card.data.name} on ${targetPlayerId}'s ${existing.data.name}, causing ${card.data.damage} damage`);
         }
 
-        // If placing on a plant, reduce score by plant's base points
-        if (existing) {
-            playerState.score -= existing.data.basePoints;
-            this.log(`${playerId}: Pest destroyed ${existing.data.name} at (${x}, ${y}), lost ${existing.data.basePoints} points`);
-        } else {
-            this.log(`${playerId}: Placed pest at empty space (${x}, ${y})`);
+        // Place pest and apply spread effects
+        targetPlayer.garden[y]![x] = card;
+        if (card.data.spreadEffect) {
+            const neighbors = this.getNeighbors(targetPlayer.garden, x, y);
+            card.data.spreadEffect(neighbors, targetPlayer);
         }
 
-        // Place pest and check for infestation
-        playerState.garden[y]![x] = tile;
-        this.checkInfestation(playerId, x, y);
-        // Decrease pest count
-        playerState.pestToPlace--;
+        this.checkInfestation(targetPlayerId, x, y);
+        this.state.draftZone.splice(cardIndex, 1);
         this.nextTurnPhase(playerId);
     }
+
+    takeActionCard({ playerId, cardIndex }: { playerId: PlayerId, cardIndex: number }) {
+        const playerState = this.state.players[playerId]!;
+        const card = this.state.draftZone[cardIndex] as ActionCard;
+
+        // Check if player can afford the card
+        if (!this.hasResources(playerId, card.data.resourceCost)) {
+            throw new Error('Not enough resources to play this card');
+        }
+
+        // Pay the cost and apply the effect immediately
+        this.spendResources(playerId, card.data.resourceCost);
+        card.data.immediateEffect(playerState, this.state);
+
+        // Remove card from draft zone
+        this.state.draftZone.splice(cardIndex, 1);
+
+        this.log(`${playerId} played action card: ${card.data.name}`);
+        this.nextTurnPhase(playerId);
+    }
+
+    // placePestTile({ playerId, x, y, tile }: { playerId: PlayerId, x: number, y: number, tile: PestTile }) {
+    //     if (playerId !== this.state.currentPlayer) throw new Error('Not your turn');
+    //     const playerState = this.state.players[playerId];
+    //     if (!playerState || playerState.turnState === 'DONE') throw new Error('Player is done playing');
+    //     if (!playerState || playerState.turnState !== 'PEST') throw new Error('Cannot place pest this turn');
+
+    //     if (!this.inBounds(x, y)) throw new Error('Out of bounds');
+
+    //     const existing = playerState.garden[y]![x];
+
+    //     if (existing?.type === 'pest') {
+    //         this.log(`${playerId}: Cannot place pest on ${existing.type} at (${x}, ${y})`);
+    //         throw new Error('Cannot place pest on other pests');
+    //     }
+
+    //     // If placing on a plant, reduce score by plant's base points
+    //     if (existing) {
+    //         playerState.score -= existing.data.basePoints;
+    //         this.log(`${playerId}: Pest destroyed ${existing.data.name} at (${x}, ${y}), lost ${existing.data.basePoints} points`);
+    //     } else {
+    //         this.log(`${playerId}: Placed pest at empty space (${x}, ${y})`);
+    //     }
+
+    //     // Place pest and check for infestation
+    //     playerState.garden[y]![x] = tile;
+    //     this.checkInfestation(playerId, x, y);
+    //     // Decrease pest count
+    //     playerState.pestToPlace--;
+    //     this.nextTurnPhase(playerId);
+    // }
 
     // Player action
     skipGrowPhase({ playerId }: { playerId: PlayerId }) {
@@ -495,12 +645,6 @@ export default class MultiplayerGardenGame {
         if (!playerState || playerState.turnState !== 'GROW') throw new Error('Cannot skip grow phase this turn');
 
         this.nextTurnPhase(playerId);
-    }
-
-    // Game action
-    drawTile(): Tile | null {
-        if (this.state.deck.length === 0) return null;
-        return this.state.deck.pop() || null;
     }
 
     // Game action
@@ -581,29 +725,10 @@ export default class MultiplayerGardenGame {
 
         this.state.currentPlayer = nextPlayer;
 
-        // Draw new card and handle pest draws
-        this.drawAndHandleNewCard();
+        this.fillDraftZone();
     }
 
-    private drawAndHandleNewCard() {
-        let newCard = this.drawTile();
-        while (newCard?.type === 'pest') {
-            // Increase pest count only for active players
-            for (const player of Object.values(this.state.players)) {
-                if (player.turnState !== 'DONE') {
-                    player.pestToPlace++;
-                }
-            }
-            this.log(`Active players gained a pest to place at the end of their turn`);
-            newCard = this.drawTile();
-        }
-
-        if (newCard) {
-            this.state.draftZone.push(newCard);
-        }
-    }
-
-    // 3. New helper method to find the next active player
+    //New helper method to find the next active player
     private findNextActivePlayer(): PlayerId | null {
         const playerIds = Object.keys(this.state.players);
         const currentIndex = playerIds.indexOf(this.state.currentPlayer);
