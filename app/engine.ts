@@ -430,7 +430,7 @@ export default class MultiplayerGardenGame {
         const neighbors = this.getNeighbors(playerState.garden, x, y);
         tile.data.growEffect(neighbors, playerState);
 
-        this.log(`Player ${playerId} grew ${tile.data.name} at (${x}, ${y})`);
+        this.log(`${playerId} grew ${tile.data.name} at (${x}, ${y})`);
         this.nextTurnPhase(playerId);
     }
 
@@ -454,7 +454,7 @@ export default class MultiplayerGardenGame {
         playerState.score += tile.data.basePoints;
 
         this.nextTurnPhase(playerId);
-        this.log(`Player ${playerId} placed ${tile.type} at (${x}, ${y})`);
+        this.log(`${playerId} placed ${tile.data.name} at (${x}, ${y})`);
     }
 
     placePestTile({ playerId, x, y, tile }: { playerId: PlayerId, x: number, y: number, tile: PestTile }) {
@@ -468,16 +468,16 @@ export default class MultiplayerGardenGame {
         const existing = playerState.garden[y]![x];
 
         if (existing?.type === 'pest') {
-            this.log(`Player ${playerId}: Cannot place pest on ${existing.type} at (${x}, ${y})`);
+            this.log(`${playerId}: Cannot place pest on ${existing.type} at (${x}, ${y})`);
             throw new Error('Cannot place pest on other pests');
         }
 
         // If placing on a plant, reduce score by plant's base points
         if (existing) {
             playerState.score -= existing.data.basePoints;
-            this.log(`Player ${playerId}: Pest destroyed ${existing.data.name} at (${x}, ${y}), lost ${existing.data.basePoints} points`);
+            this.log(`${playerId}: Pest destroyed ${existing.data.name} at (${x}, ${y}), lost ${existing.data.basePoints} points`);
         } else {
-            this.log(`Player ${playerId}: Placed pest at empty space (${x}, ${y})`);
+            this.log(`${playerId}: Placed pest at empty space (${x}, ${y})`);
         }
 
         // Place pest and check for infestation
@@ -514,25 +514,21 @@ export default class MultiplayerGardenGame {
         const playerState = this.state.players[playerId];
         if (!playerState) return;
 
-        // If player is already done, don't change their state
-        if (playerState.turnState === 'DONE') return;
-
-        if (playerState.turnState === 'PLACE') {
-            playerState.turnState = 'GROW';
-        } else if (playerState.turnState === 'GROW' && playerState.pestToPlace > 0) {
-            playerState.turnState = 'PEST';
-        } else if (playerState.turnState === 'GROW' && playerState.pestToPlace === 0) {
-            playerState.turnState = 'END';
-        } else if (playerState.turnState === 'PEST' && playerState.pestToPlace === 0) {
-            playerState.turnState = 'END';
-        } else if (playerState.turnState === 'END') {
+        const advanceOrFinish = () => {
             if (this.isPlayerDonePlaying(playerId)) {
                 playerState.turnState = 'DONE';
-                this.log(`Player ${playerId} is done playing!`);
+                this.log(`${playerId} is done playing!`);
             } else {
                 playerState.turnState = 'PLACE';
             }
         }
+        // If player is already done, don't change their state
+        if (playerState.turnState === 'DONE') return;
+        if (playerState.turnState === 'PLACE') playerState.turnState = 'GROW';
+        else if (playerState.turnState === 'GROW' && playerState.pestToPlace > 0) playerState.turnState = 'PEST';
+        else if (playerState.turnState === 'GROW' && playerState.pestToPlace === 0) playerState.turnState = 'END';
+        else if (playerState.turnState === 'PEST' && playerState.pestToPlace === 0) playerState.turnState = 'END';
+        else if (playerState.turnState === 'END') advanceOrFinish()
     }
 
     // Game action
@@ -544,7 +540,7 @@ export default class MultiplayerGardenGame {
         const pestNeighbors = neighbors.filter(t => t?.type === 'pest').length;
         if (pestNeighbors >= 1) {
             playerState.infestation += 1;
-            this.log(`Player ${playerId} infestation increased to ${playerState.infestation}`);
+            this.log(`${playerId} infestation increased to ${playerState.infestation}`);
         }
     }
 
@@ -561,7 +557,6 @@ export default class MultiplayerGardenGame {
 
         // First, handle the current player's end-of-turn effects
         this.nextTurnPhase(playerId); // This will set them to DONE if appropriate
-        this.gainRandomResource(playerId);
         this.gainRandomResource(playerId);
 
         // Find next active player

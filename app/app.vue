@@ -111,6 +111,19 @@
         </div>
       </div>
 
+      <!-- Game Log -->
+      <div class="space-y-2 h-1/4 overflow-auto">
+        <h2 class="text-white font-semibold text-lg flex items-center gap-2">
+          <span class="w-2 h-2 bg-green-400 rounded-full"></span>
+          Game Log
+        </h2>
+        <div class="flex flex-col gap-2">
+          <div v-for="log in state.log.slice(-10)" :key="log" class="text-sm text-gray-400">
+            {{ log }}
+          </div>
+        </div>
+      </div>
+
       <button class="btn btn-error w-full" @click="resetGame()">Reset game</button>
 
     </div>
