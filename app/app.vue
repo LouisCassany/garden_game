@@ -189,10 +189,10 @@
 
           <div class="flex gap-3 flex-col">
             <div v-if="turnState === 'PLACE'" class="flex gap-2">
-              <img :src="`/${selectedTile?.data.name}.jpeg`" class="w-20 h-20 rounded-xl object-cover bg-white/10" />
+              <img :src="`/${selectedTile?.data.name}.jpeg`" class="size-25 rounded-xl object-cover bg-white/10" />
               <div class="flex-1 space-y-3">
+                <h4 class="font-bold text-lg">{{ selectedTile?.data.name }}</h4>
                 <p class="text-gray-300 text-sm">{{ selectedTile?.data.effect }}</p>
-
                 <div class="flex gap-3 text-sm">
                   <span class="flex items-center gap-1 text-blue-400">
                     💧 {{ selectedTile?.data.growthCost.water ?? 0 }}
