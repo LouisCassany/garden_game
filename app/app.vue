@@ -91,12 +91,12 @@
         <div class="grid grid-cols-5 gap-2">
           <template v-for="(tile, index) in flattenGarden(state.players[viewingPlayer]!.garden)">
 
-            <div v-if="tile" @click="openModal(tile)"
+            <div v-if="tile" @click="openModal(index % 5, Math.floor(index / 5), tile)"
               class="aspect-square flex items-center justify-center bg-white/5 border-2 border-dashed border-white/20 rounded-xl cursor-pointer">
               {{ tile.data.name }}
             </div>
 
-            <div v-else @click="openModal()" class=" aspect-square flex items-center justify-center bg-white/5 border-2 border-dashed border-white/20
+            <div v-else @click="openModal(index % 5, Math.floor(index / 5))" class=" aspect-square flex items-center justify-center bg-white/5 border-2 border-dashed border-white/20
               rounded-xl cursor-pointer">
               <span class="text-xl text-white/30">
                 {{ turnState === 'PLACE' && draftTile?.type === 'plant' ? "+" : "·" }}
@@ -128,7 +128,8 @@
       <div class="modal-box bg-slate-900 border border-white/20" v-if="draftTile">
         {{ modalTile?.data.name }}
 
-        <button v-if="draftTile.type === 'plant' && !modalTile && viewingPlayer === playerId" class="btn btn-primary">
+        <button v-if="draftTile.type === 'plant' && !modalTile && viewingPlayer === playerId" class="btn btn-primary"
+          @click="placePlantTile(modalTileXY!.x, modalTileXY!.y)">
           Plant {{ draftTile.data.name }}
         </button>
 
@@ -275,6 +276,7 @@ const viewingPlayer = ref<PlayerId>("louis");
 
 // Unified modal state
 const modalTile = ref<Tile | null>(null);
+const modalTileXY = ref<{ x: number, y: number } | null>(null);
 
 onMounted(async () => {
   const res = await fetch("/api/state");
@@ -298,7 +300,8 @@ onMounted(async () => {
   // }, 1000);
 });
 
-function openModal(tile?: Tile) {
+function openModal(x: number, y: number, tile?: Tile) {
+  modalTileXY.value = { x, y };
   modalTile.value = tile ?? null;
   const modal = document.getElementById('modal') as HTMLDialogElement;
   modal.showModal();
@@ -378,23 +381,15 @@ async function updateUI() {
 //   }
 // }
 
-// async function placeTile(x: number, y: number) {
-//   if (!selectedTile.value) return;
-//   if (!state.value) return;
-
-//   if (turnState.value === 'PLACE') {
-//     const tileIndex = state.value.draftZone.indexOf(selectedTile.value)
-//     await sendCommand("placeTile", { playerId, tileIndex, x, y }).catch((err) => {
-//       console.error("Error sending command:", err);
-//     })
-//     updateUI();
-//   } else if (turnState.value === 'PEST') {
-//     await sendCommand("placePestTile", { playerId, x, y, tile: { type: 'pest' } }).catch((err) => {
-//       console.error("Error sending command:", err);
-//     });
-//     updateUI();
-//   }
-// }
+async function placePlantTile(x: number, y: number) {
+  if (!draftTile.value) return;
+  if (!state.value) return;
+  const tileIndex = state.value.draftZone.indexOf(draftTile.value)
+  await sendCommand("placePlantTile", { playerId, tileIndex, x, y }).catch((err) => {
+    console.error("Error sending command:", err);
+  })
+  updateUI();
+}
 
 async function endturn() {
   await sendCommand("nextTurn", { playerId }).catch((err) => {

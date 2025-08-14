@@ -84,18 +84,22 @@ type Settings = {
 
 // List of games commands to export for client-side usage
 interface GameCommands {
-    growPlant: {
-        args: Parameters<MultiplayerGardenGame["growPlant"]>;
-        return: ReturnType<MultiplayerGardenGame["growPlant"]>;
-    };
     placePlantTile: {
         args: Parameters<MultiplayerGardenGame["placePlantTile"]>;
         return: ReturnType<MultiplayerGardenGame["placePlantTile"]>;
     };
-    placePestOnPlayer: {
-        args: Parameters<MultiplayerGardenGame["placePestOnPlayer"]>;
-        return: ReturnType<MultiplayerGardenGame["placePestOnPlayer"]>;
+    growPlant: {
+        args: Parameters<MultiplayerGardenGame["growPlant"]>;
+        return: ReturnType<MultiplayerGardenGame["growPlant"]>;
     };
+    // playActionCard: {
+    //     args: Parameters<MultiplayerGardenGame["playActionCard"]>;
+    //     return: ReturnType<MultiplayerGardenGame["playActionCard"]>;
+    // };
+    // placePestOnPlayer: {
+    //     args: Parameters<MultiplayerGardenGame["placePestOnPlayer"]>;
+    //     return: ReturnType<MultiplayerGardenGame["placePestOnPlayer"]>;
+    // };
     nextTurn: {
         args: Parameters<MultiplayerGardenGame["nextTurn"]>;
         return: ReturnType<MultiplayerGardenGame["nextTurn"]>;
@@ -540,9 +544,9 @@ export default class MultiplayerGardenGame {
         this.nextTurnPhase(playerId);
     }
 
-    placePlantTile({ playerId, cardIndex, x, y }: { playerId: PlayerId, cardIndex: number, x: number, y: number }) {
+    placePlantTile({ playerId, tileIndex, x, y }: { playerId: PlayerId, tileIndex: number, x: number, y: number }) {
         const playerState = this.state.players[playerId]!;
-        const card = this.state.draftZone[cardIndex] as PlantTile;
+        const card = this.state.draftZone[tileIndex] as PlantTile;
 
         if (!this.inBounds(x, y)) throw new Error('Out of bounds');
         if (playerState.garden[y]![x]) throw new Error('Tile already exists at this position');
@@ -550,7 +554,7 @@ export default class MultiplayerGardenGame {
         playerState.garden[y]![x] = card;
         playerState.score += card.data.basePoints;
 
-        this.state.draftZone.splice(cardIndex, 1);
+        this.state.draftZone.splice(tileIndex, 1);
         this.log(`${playerId} placed ${card.data.name} at (${x}, ${y})`);
         this.nextTurnPhase(playerId);
     }
@@ -585,7 +589,7 @@ export default class MultiplayerGardenGame {
         this.nextTurnPhase(playerId);
     }
 
-    takeActionCard({ playerId, cardIndex }: { playerId: PlayerId, cardIndex: number }) {
+    playActionCard({ playerId, cardIndex, x, y }: { playerId: PlayerId, cardIndex: number, x: number, y: number }) {
         const playerState = this.state.players[playerId]!;
         const card = this.state.draftZone[cardIndex] as ActionCard;
 
@@ -594,9 +598,12 @@ export default class MultiplayerGardenGame {
             throw new Error('Not enough resources to play this card');
         }
 
+        const targetTile = playerState.garden[y]![x];
+        if (!targetTile) throw new Error('Invalid target tile');
+
         // Pay the cost and apply the effect immediately
         this.spendResources(playerId, card.data.resourceCost);
-        card.data.immediateEffect(playerState, this.state);
+        card.data.immediateEffect(playerState, this.state, targetTile, this.getNeighbors(playerState.garden, x, y));
 
         // Remove card from draft zone
         this.state.draftZone.splice(cardIndex, 1);
