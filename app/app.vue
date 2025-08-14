@@ -63,7 +63,7 @@
           <span class="w-2 h-2 bg-emerald-400 rounded-full"></span>
           Draft Zone
         </h2>
-        <div class="flex overflow-x-auto pb-2 -mx-4 p-2">
+        <div class="flex overflow-x-scroll pb-2 -mx-4 p-2">
           <label v-for="card in state.draftZone" :key="card.id"
             class="flex flex-col items-center cursor-pointer gap-2 flex-shrink-0 p-2 rounded-lg transition-all"
             :class="{ 'ring-2 ring-emerald-400 bg-emerald-400/10': draftTile?.id === card.id }">
@@ -75,7 +75,7 @@
       </div>
 
       <!-- Garden -->
-      <!-- <div class="space-y-3">
+      <div class="space-y-3">
         <div class="flex items-center justify-between">
           <h2 class="text-white font-semibold text-lg flex items-center gap-2">
             <span class="w-2 h-2 bg-green-400 rounded-full"></span>
@@ -89,22 +89,23 @@
           </h2>
         </div>
         <div class="grid grid-cols-5 gap-2">
-          <template v-for="(tile, index) in flattenGarden(state.players[viewingPlayer!]!.garden)">
-            <TileCard v-if="tile" :tile="tile" :canBeGrown="canBeGrown(tile)" :compact="true"
-              @click="tile.type !== 'pest' ? openModal('info', { tile, index }) : undefined"
-              :class="viewingPlayer === playerId ? 'cursor-pointer hover:scale-105 transition-transform' : 'cursor-default'" />
-            <button v-else-if="viewingPlayer === playerId && (turnState === 'PLACE' || turnState === 'PEST')"
-              class="aspect-square flex items-center justify-center bg-white/10 hover:bg-white/20 border-2 border-dashed border-white/30 rounded-xl transition-all active:scale-95"
-              @click="openModal('place', { x: index % 5, y: Math.floor(index / 5) })">
-              <span class="text-2xl text-white/60">+</span>
-            </button>
-            <div v-else
-              class="aspect-square flex items-center justify-center bg-white/5 border-2 border-dashed border-white/20 rounded-xl">
-              <span class="text-xl text-white/30">·</span>
+          <template v-for="(tile, index) in flattenGarden(state.players[viewingPlayer]!.garden)">
+
+            <div v-if="tile" @click="openModal(tile)"
+              class="aspect-square flex items-center justify-center bg-white/5 border-2 border-dashed border-white/20 rounded-xl cursor-pointer">
+              {{ tile.data.name }}
             </div>
+
+            <div v-else @click="openModal()" class=" aspect-square flex items-center justify-center bg-white/5 border-2 border-dashed border-white/20
+              rounded-xl cursor-pointer">
+              <span class="text-xl text-white/30">
+                {{ turnState === 'PLACE' && draftTile?.type === 'plant' ? "+" : "·" }}
+              </span>
+            </div>
+
           </template>
-</div>
-</div> -->
+        </div>
+      </div>
 
       <!-- Game Log -->
       <div class="space-y-2 h-1/4 overflow-auto">
@@ -122,6 +123,28 @@
       <button class="btn btn-error w-full" @click="resetGame()">Reset game</button>
 
     </div>
+
+    <dialog id="modal" class="modal modal-bottom">
+      <div class="modal-box bg-slate-900 border border-white/20" v-if="draftTile">
+        {{ modalTile?.data.name }}
+
+        <button v-if="draftTile.type === 'plant' && !modalTile && viewingPlayer === playerId" class="btn btn-primary">
+          Plant {{ draftTile.data.name }}
+        </button>
+
+        <button v-if="draftTile.type === 'action' && modalTile" class="btn btn-primary">
+          Play {{ draftTile.data.name }}
+        </button>
+
+        <button v-if="draftTile.type === 'pest' && viewingPlayer !== playerId" class="btn btn-primary">
+          Play {{ draftTile.data.name }}
+        </button>
+
+      </div>
+      <form method="dialog" class="modal-backdrop">
+        <button>close</button>
+      </form>
+    </dialog>
 
     <!-- <dialog ref="modal" class="modal modal-bottom">
       <div class="modal-box bg-slate-900 border border-white/20">
@@ -243,13 +266,11 @@ import { type MultiplayerGameState, type Tile, type Garden, sendCommand, type Pl
 
 const state = ref<MultiplayerGameState | null>(null);
 const draftTile = ref<DraftCard | null>(null);
-const drawerOpen = ref(false);
 const playerId = useRoute().query.playerId as PlayerId ?? "louis"
-// const viewingPlayer = ref<PlayerId | null>(null);
+const viewingPlayer = ref<PlayerId>("louis");
 
 // Unified modal state
-// const modalMode = ref<'info' | 'place' | null>(null);
-// const modalData = ref<any>({});
+const modalTile = ref<Tile | null>(null);
 
 onMounted(async () => {
   const res = await fetch("/api/state");
@@ -273,9 +294,12 @@ onMounted(async () => {
   // }, 1000);
 });
 
-function toggleDrawer() {
-  drawerOpen.value = !drawerOpen.value;
+function openModal(tile?: Tile) {
+  modalTile.value = tile ?? null;
+  const modal = document.getElementById('modal') as HTMLDialogElement;
+  modal.showModal();
 }
+
 
 function resetGame() {
   fetch("/api/reset", {
@@ -289,7 +313,6 @@ function resetGame() {
       console.error("Failed to reset game:", res);
     }
   });
-  toggleDrawer();
 }
 
 function flattenGarden(garden: Garden): (Tile | null)[] {

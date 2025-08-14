@@ -447,6 +447,18 @@ export default class MultiplayerGardenGame {
                 turnState: 'PLACE',
                 pestToPlace: 0,
             };
+            players[id].garden[0]![0] = {
+                id: generateId(),
+                type: 'plant',
+                data: plantLibrary[0] as PlantData,
+                grown: false,
+            };
+
+            players[id].garden[1]![0] = {
+                id: generateId(),
+                type: 'pest',
+                data: pestLibrary[0] as PestData,
+            };
         }
 
         this.state = {
