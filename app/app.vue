@@ -136,8 +136,12 @@
           Play {{ draftTile.data.name }}
         </button>
 
-        <button v-if="draftTile.type === 'pest' && viewingPlayer !== playerId" class="btn btn-primary">
+        <button v-if="draftTile.type === 'pest' && !modalTile && viewingPlayer !== playerId" class="btn btn-primary">
           Play {{ draftTile.data.name }}
+        </button>
+
+        <button v-if="modalTile && modalTile.type === 'plant' && viewingPlayer === playerId && turnState === 'GROW'">
+          Grow {{ modalTile.data.name }}
         </button>
 
       </div>

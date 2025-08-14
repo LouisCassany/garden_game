@@ -46,7 +46,7 @@ interface PestData {
 interface ActionCardData {
     name: ActionCardName;
     resourceCost: Partial<Record<Resource, number>>;
-    immediateEffect: (playerState: PlayerState, gameState: MultiplayerGameState) => void;
+    immediateEffect: (playerState: PlayerState, gameState: MultiplayerGameState, target: PlantTile | PestTile, neighbor: (Tile | null)[]) => void;
     effect: string;
     description: string;
 }
@@ -165,28 +165,14 @@ const actionCardLibrary: ActionCardData[] = [
         resourceCost: { compost: 1 },
         effect: 'Grow a plant instantly without paying its growth cost',
         description: 'Rich nutrients that accelerate plant growth.',
-        immediateEffect: (playerState, gameState) => {
-            // This would be handled in the UI - player selects which plant to grow
-            gameState.log.push(`${playerState.id} used Fertilizer`);
-        }
-    },
-    {
-        name: 'Pesticide',
-        resourceCost: { water: 1 },
-        effect: 'Remove all pest tiles from your garden',
-        description: 'Powerful chemicals that eliminate pests.',
-        immediateEffect: (playerState, gameState) => {
-            let pestsRemoved = 0;
-            for (let y = 0; y < playerState.garden.length; y++) {
-                for (let x = 0; x < playerState.garden[y]!.length; x++) {
-                    if (playerState.garden[y]![x]?.type === 'pest') {
-                        playerState.garden[y]![x] = null;
-                        pestsRemoved++;
-                    }
-                }
+        immediateEffect: (playerState, gameState, target, neighbors) => {
+            if (target.type === 'plant') {
+                gameState.log.push(`${playerState.id} used Fertilizer on ${target.data.name}`);
+                target.data.growEffect(neighbors, playerState);
+                target.grown = true;
+            } else {
+                throw new Error("Can't use fertilizer on pests");
             }
-            playerState.infestation = Math.max(0, playerState.infestation - pestsRemoved);
-            gameState.log.push(`${playerState.id} removed ${pestsRemoved} pests with Pesticide`);
         }
     },
     {
@@ -194,7 +180,7 @@ const actionCardLibrary: ActionCardData[] = [
         resourceCost: {},
         effect: '+3 water resources',
         description: 'Abundant water for your garden.',
-        immediateEffect: (playerState, gameState) => {
+        immediateEffect: (playerState, gameState, target, neighbors) => {
             playerState.resources.water = Math.min(10, playerState.resources.water + 3);
             gameState.log.push(`${playerState.id} gained 3 water from Watering`);
         }
@@ -204,7 +190,7 @@ const actionCardLibrary: ActionCardData[] = [
         resourceCost: { light: 1 },
         effect: '+2 points for each grown plant',
         description: 'Careful maintenance improves plant health.',
-        immediateEffect: (playerState, gameState) => {
+        immediateEffect: (playerState, gameState, target, neighbors) => {
             let grownPlants = 0;
             playerState.garden.flat().forEach(tile => {
                 if (tile?.type === 'plant' && tile.grown) {
@@ -220,7 +206,7 @@ const actionCardLibrary: ActionCardData[] = [
         resourceCost: {},
         effect: '+2 compost resources',
         description: 'Natural fertilizer from organic waste.',
-        immediateEffect: (playerState, gameState) => {
+        immediateEffect: (playerState, gameState, target, neighbors) => {
             playerState.resources.compost = Math.min(10, playerState.resources.compost + 2);
             gameState.log.push(`${playerState.id} gained 2 compost from Composting`);
         }
