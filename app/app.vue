@@ -91,10 +91,10 @@
         <div class="grid grid-cols-5 gap-2">
           <template v-for="(tile, index) in flattenGarden(state.players[viewingPlayer]!.garden)">
 
-            <div v-if="tile" @click="openModal(index % 5, Math.floor(index / 5), tile)"
+            <TileCard :card="tile" v-if="tile" @click="openModal(index % 5, Math.floor(index / 5), tile)"
               class="aspect-square flex items-center justify-center bg-white/5 border-2 border-dashed border-white/20 rounded-xl cursor-pointer">
               {{ tile.data.name }}
-            </div>
+            </TileCard>
 
             <div v-else @click="openModal(index % 5, Math.floor(index / 5))" class=" aspect-square flex items-center justify-center bg-white/5 border-2 border-dashed border-white/20
               rounded-xl cursor-pointer">
@@ -268,6 +268,7 @@
 <script lang="ts" setup>
 import { ref, computed } from "vue";
 import { type MultiplayerGameState, type Tile, type Garden, sendCommand, type PlantTile, type PlayerId, type DraftCard } from "./engine";
+import TileCard from "./components/TileCard.vue";
 
 const state = ref<MultiplayerGameState | null>(null);
 const draftTile = ref<DraftCard | null>(null);

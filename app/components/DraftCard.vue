@@ -4,7 +4,6 @@
         <!-- Background image -->
         <img alt="" :src="`/${card.data.name}.jpeg`" class="absolute inset-0 w-full h-full object-cover" />
 
-        <!-- Non-compact overlay -->
         <div class="relative z-0 flex flex-col justify-between h-full backdrop-blur-[3px] text-white p-1 rounded-md">
             <div class="flex w-full justify-between font-bold">
                 <span>{{ card.data.name }}</span>
