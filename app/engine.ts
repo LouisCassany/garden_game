@@ -45,7 +45,6 @@ interface PestData {
 
 interface ActionCardData {
     name: ActionCardName;
-    resourceCost: Partial<Record<Resource, number>>;
     immediateEffect: (playerState: PlayerState, gameState: MultiplayerGameState, target: PlantTile | PestTile, neighbor: (Tile | null)[]) => void;
     effect: string;
     description: string;
@@ -92,10 +91,10 @@ interface GameCommands {
         args: Parameters<MultiplayerGardenGame["growPlant"]>;
         return: ReturnType<MultiplayerGardenGame["growPlant"]>;
     };
-    // playActionCard: {
-    //     args: Parameters<MultiplayerGardenGame["playActionCard"]>;
-    //     return: ReturnType<MultiplayerGardenGame["playActionCard"]>;
-    // };
+    playActionCard: {
+        args: Parameters<MultiplayerGardenGame["playActionCard"]>;
+        return: ReturnType<MultiplayerGardenGame["playActionCard"]>;
+    };
     // placePestOnPlayer: {
     //     args: Parameters<MultiplayerGardenGame["placePestOnPlayer"]>;
     //     return: ReturnType<MultiplayerGardenGame["placePestOnPlayer"]>;
@@ -166,7 +165,6 @@ const pestLibrary: PestData[] = [
 const actionCardLibrary: ActionCardData[] = [
     {
         name: 'Fertilizer',
-        resourceCost: { compost: 1 },
         effect: 'Grow a plant instantly without paying its growth cost',
         description: 'Rich nutrients that accelerate plant growth.',
         immediateEffect: (playerState, gameState, target, neighbors) => {
@@ -181,7 +179,6 @@ const actionCardLibrary: ActionCardData[] = [
     },
     {
         name: 'Watering',
-        resourceCost: {},
         effect: '+3 water resources',
         description: 'Abundant water for your garden.',
         immediateEffect: (playerState, gameState, target, neighbors) => {
@@ -191,7 +188,6 @@ const actionCardLibrary: ActionCardData[] = [
     },
     {
         name: 'Pruning',
-        resourceCost: { light: 1 },
         effect: '+2 points for each grown plant',
         description: 'Careful maintenance improves plant health.',
         immediateEffect: (playerState, gameState, target, neighbors) => {
@@ -207,7 +203,6 @@ const actionCardLibrary: ActionCardData[] = [
     },
     {
         name: 'Composting',
-        resourceCost: {},
         effect: '+2 compost resources',
         description: 'Natural fertilizer from organic waste.',
         immediateEffect: (playerState, gameState, target, neighbors) => {
@@ -217,7 +212,6 @@ const actionCardLibrary: ActionCardData[] = [
     },
     {
         name: 'WeatherBoost',
-        resourceCost: {},
         effect: '+2 light resources and +1 point',
         description: 'Perfect weather conditions boost your garden.',
         immediateEffect: (playerState, gameState) => {
@@ -589,24 +583,18 @@ export default class MultiplayerGardenGame {
         this.nextTurnPhase(playerId);
     }
 
-    playActionCard({ playerId, cardIndex, x, y }: { playerId: PlayerId, cardIndex: number, x: number, y: number }) {
+    playActionCard({ playerId, tileIndex: tileIndex, x, y }: { playerId: PlayerId, tileIndex: number, x: number, y: number }) {
         const playerState = this.state.players[playerId]!;
-        const card = this.state.draftZone[cardIndex] as ActionCard;
-
-        // Check if player can afford the card
-        if (!this.hasResources(playerId, card.data.resourceCost)) {
-            throw new Error('Not enough resources to play this card');
-        }
+        const card = this.state.draftZone[tileIndex] as ActionCard;
 
         const targetTile = playerState.garden[y]![x];
         if (!targetTile) throw new Error('Invalid target tile');
 
         // Pay the cost and apply the effect immediately
-        this.spendResources(playerId, card.data.resourceCost);
         card.data.immediateEffect(playerState, this.state, targetTile, this.getNeighbors(playerState.garden, x, y));
 
         // Remove card from draft zone
-        this.state.draftZone.splice(cardIndex, 1);
+        this.state.draftZone.splice(tileIndex, 1);
 
         this.log(`${playerId} played action card: ${card.data.name}`);
         this.nextTurnPhase(playerId);

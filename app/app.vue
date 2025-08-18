@@ -138,7 +138,8 @@
         </button>
 
 
-        <button v-if="draftTile.type === 'action' && modalTile" class="btn btn-primary">
+        <button v-if="draftTile.type === 'action' && modalTile" class="btn btn-primary"
+          @click="playActionCard(modalTileXY!.x, modalTileXY!.y)">
           Play {{ draftTile.data.name }}
         </button>
 
@@ -368,6 +369,15 @@ async function placePlantTile(x: number, y: number) {
     console.error("Error sending command:", err);
   })
   updateUI();
+}
+
+async function playActionCard(x: number, y: number) {
+  if (!draftTile.value) return;
+  if (!state.value) return;
+  const tileIndex = state.value.draftZone.indexOf(draftTile.value)
+  await sendCommand("playActionCard", { playerId, tileIndex, x, y }).catch((err) => {
+    console.error("Error sending command:", err);
+  })
 }
 
 async function endturn() {
