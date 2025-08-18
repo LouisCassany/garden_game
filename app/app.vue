@@ -99,7 +99,8 @@
             <div v-else @click="openModal(index % 5, Math.floor(index / 5))" class=" aspect-square flex items-center justify-center bg-white/5 border-2 border-dashed border-white/20
               rounded-xl cursor-pointer">
               <span class="text-xl text-white/30">
-                {{ turnState === 'PLACE' && draftTile?.type === 'plant' ? "+" : "·" }}
+                {{ turnState === 'PLACE' && draftTile?.type === 'plant' || (draftTile?.type === 'pest' && viewingPlayer
+                  !== playerId) ? "+" : "·" }}
               </span>
             </div>
 
@@ -126,12 +127,16 @@
 
     <dialog id="modal" class="modal modal-bottom">
       <div class="modal-box bg-slate-900 border border-white/20" v-if="draftTile">
-        {{ modalTile?.data.name }}
+        <ModalTile v-if="modalTile" :modalTile="modalTile" />
+        <ModalTile v-else-if="draftTile" :modalTile="draftTile" />
+
+        <hr class="my-4 border border-secondary" />
 
         <button v-if="draftTile.type === 'plant' && !modalTile && viewingPlayer === playerId" class="btn btn-primary"
           @click="placePlantTile(modalTileXY!.x, modalTileXY!.y)">
           Plant {{ draftTile.data.name }}
         </button>
+
 
         <button v-if="draftTile.type === 'action' && modalTile" class="btn btn-primary">
           Play {{ draftTile.data.name }}
@@ -155,36 +160,9 @@
       <div class="modal-box bg-slate-900 border border-white/20">
 
     <div v-if="modalMode === 'info' && modalData.tile?.type === 'plant'" class="space-y-4">
-      <div class="flex items-start justify-between">
-        <div>
-          <h3 class="text-xl font-bold text-white">{{ modalData.tile?.data.name }}</h3>
-          <div class="flex items-center gap-2 mt-1">
-            <span class="text-amber-400">⭐️{{ modalData.tile?.data.basePoints }}</span>
-            <span v-if="modalData.tile.grown" class="px-2 py-1 bg-green-500/20 text-green-400 text-xs rounded-full">
-              Grown
-            </span>
-          </div>
-        </div>
-      </div>
+      
 
-      <div class="flex gap-4">
-        <img :src="`/${modalData.tile?.data.name}.jpeg`" class="w-20 h-20 rounded-xl object-cover bg-white/10" />
-        <div class="flex-1 space-y-3">
-          <p class="text-gray-300 text-sm">{{ modalData.tile?.data.effect }}</p>
-
-          <div class="flex gap-3 text-sm">
-            <span class="flex items-center gap-1 text-blue-400">
-              💧 {{ modalData.tile?.data.growthCost.water ?? 0 }}
-            </span>
-            <span class="flex items-center gap-1 text-yellow-400">
-              ☀️ {{ modalData.tile?.data.growthCost.light ?? 0 }}
-            </span>
-            <span class="flex items-center gap-1 text-amber-400">
-              🌾 {{ modalData.tile?.data.growthCost.compost ?? 0 }}
-            </span>
-          </div>
-        </div>
-      </div>
+     
 
       <div v-if="viewingPlayer === playerId" class="flex gap-3">
         <button
